@@ -1,0 +1,21 @@
+extends embed.pug
+
+block iframe
+  iframe(id="powerApp" width="720" height="520" style="width: 94%; display: none" src="https://web.powerapps.com/webplayer/iframeapp?source=iframe&screenColor=rgba(104,101,171,1)&appId=/providers/Microsoft.PowerApps/apps/a3447344-9220-4868-b45b-07759637be0f")
+  div(id="powerAppError" class="surface" style="display: none; padding: 20px;")
+    p This task module shows an "Asset Checkout" PowerApp. To use it:
+    ol
+      li Go to <a href="https://powerapps.microsoft.com" target="_blank">https://powerapps.microsoft.com</a> and sign in.
+      li Search for "Asset Checkout" in the search box.
+      li Click on it, press the "Make this app" button, and save it to the cloud.
+      li Press the Share button to get your PowerApp's App ID.
+      li Replace the App ID in the iframe src URL in this file with your App ID.
+  script.
+    microsoftTeams.app.initialize().then(() => {
+      microsoftTeams.app.getContext().then((context) => {
+        // Show PowerApp for all tenants
+        document.getElementById("powerApp").style.display = "block";
+      }).catch((error) => {
+        document.getElementById("powerAppError").style.display = "block";
+      });
+    });
