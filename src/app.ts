@@ -35,6 +35,7 @@ import * as msteams from "botbuilder-teams";
 import * as storage from "./storage";
 import { TeamsBot } from "./TeamsBot";
 import { MessagingExtension } from "./MessagingExtension";
+import uploadRouter from './routes/upload-image';
 
 const PORT = parseInt(process.env.PORT || "3978", 10);
 const BASE_URI = process.env.BASE_URI || `http://localhost:${PORT}`;
@@ -129,6 +130,12 @@ tabs.setup(app);
 app.get("/ping", (req: express.Request, res: express.Response) => {
     res.status(200).send("OK");
 });
+
+// Serve static files from public directory
+app.use(express.static('public'));
+
+// Add upload route
+app.use('/api/upload-image', uploadRouter);
 
 // Start our nodejs app
 app.listen(PORT, "0.0.0.0", function(): void {

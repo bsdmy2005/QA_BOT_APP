@@ -771,13 +771,44 @@ export const cardTemplates: any = {
         ],
         "version": "1.0"
     },
+    questionSubmitted: {
+        "type": "AdaptiveCard",
+        "body": [
+            {
+                "type": "TextBlock",
+                "size": "Medium",
+                "weight": "Bolder",
+                "text": "New Question Submitted"
+            },
+            {
+                "type": "TextBlock",
+                "text": "Title: {{title}}",
+                "wrap": true,
+                "weight": "Bolder"
+            },
+            {
+                "type": "TextBlock",
+                "text": "Asked by: {{userName}}",
+                "wrap": true,
+                "isSubtle": true
+            },
+            {
+                "type": "TextBlock",
+                "text": "{{timestamp}}",
+                "wrap": true,
+                "isSubtle": true,
+                "spacing": "None"
+            }
+        ],
+        "version": "1.0"
+    },
 };
 
 export const fetchTemplates: any = {
     customform: {
         title: constants.TaskModuleStrings.CustomFormTitle,
-        height: constants.TaskModuleSizes.customform.height,
-        width: constants.TaskModuleSizes.customform.width,
+        height: 580,
+        width: 920,
         url: `${appRoot()}/customform`,
         fallbackUrl: `${appRoot()}/customform`,
         completionBotId: process.env.MICROSOFT_APP_ID

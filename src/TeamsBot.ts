@@ -29,6 +29,7 @@ import * as logger from "winston";
 import { RootDialog } from "./dialogs/RootDialog";
 import { fetchTemplates, cardTemplates } from "./dialogs/CardTemplates";
 import { renderACAttachment } from "./utils";
+import { questionsService } from "./services/questions-service";
 
 export class TeamsBot extends builder.UniversalBot {
 
@@ -93,8 +94,28 @@ export class TeamsBot extends builder.UniversalBot {
                     let taskModule = invokeValue.data.taskModule.toLowerCase();
                     logger.info("Processing task/fetch", {
                         taskModule: taskModule,
-                        template: fetchTemplates[taskModule]
+                        questionId: invokeValue.data.questionId
                     });
+
+                    if (taskModule === "viewquestion") {
+                        // Create a template for viewing question details
+                        const questionId = invokeValue.data.questionId;
+                        const response = {
+                            task: {
+                                type: "continue",
+                                value: {
+                                    title: "Question Details",
+                                    height: 720,
+                                    width: 1000,
+                                    url: `${process.env.BASE_URI}/question/${questionId}`,
+                                    fallbackUrl: `${process.env.BASE_URI}/question/${questionId}`
+                                }
+                            }
+                        };
+                        logger.info("Sending view question response", { response });
+                        cb(null, response, 200);
+                        return;
+                    }
 
                     if (fetchTemplates[taskModule] !== undefined) {
                         const response = {
@@ -133,10 +154,173 @@ export class TeamsBot extends builder.UniversalBot {
                     });
 
                     if (invokeValue.data !== undefined) {
-                        // It's a valid task module response
+                        // Save the question if it's from our custom form
+                        if (invokeValue.data.title && invokeValue.data.text && invokeValue.data.userId) {
+                            try {
+                                // Format the text with markdown
+                                const formattedQuestion = {
+                                    ...invokeValue.data,
+                                    text: invokeValue.data.text, // Remove markdown formatting since we're using rich text
+                                    rawHtml: invokeValue.data.text // Store the raw HTML for future reference
+                                };
+                                
+                                // Save the question
+                                const savedQuestion = await questionsService.addQuestion(formattedQuestion);
+                                
+                                // Function to convert HTML to markdown-style formatting
+                                function convertHtmlToMarkdown(html: string): { text: string; images: string[] } {
+                                    if (!html) return { text: '', images: [] };
+                                    
+                                    // Extract images and store their information
+                                    const images: string[] = [];
+                                    const textWithoutImages = html.replace(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi, (match, src) => {
+                                        images.push(src);
+                                        return ''; // Remove image placeholder completely
+                                    });
+                                    
+                                    // Convert other HTML to markdown
+                                    let text = textWithoutImages
+                                        // Handle unordered lists
+                                        .replace(/<ul>([\s\S]*?)<\/ul>/gi, (match, content) => {
+                                            return content.split('</li>')
+                                                .filter(item => item.trim())
+                                                .map(item => {
+                                                    item = item.replace(/<li>/gi, '').trim();
+                                                    return `• ${item}\r`;
+                                                })
+                                                .join('');
+                                        })
+                                        // Handle ordered lists
+                                        .replace(/<ol>([\s\S]*?)<\/ol>/gi, (match, content) => {
+                                            let index = 1;
+                                            return content.split('</li>')
+                                                .filter(item => item.trim())
+                                                .map(item => {
+                                                    item = item.replace(/<li>/gi, '').trim();
+                                                    return `${index++}. ${item}\r`;
+                                                })
+                                                .join('');
+                                        })
+                                        // Handle paragraphs
+                                        .replace(/<p>([\s\S]*?)<\/p>/gi, '$1\r\r')
+                                        // Handle line breaks
+                                        .replace(/<br\s*\/?>/gi, '\r')
+                                        // Handle bold text
+                                        .replace(/<(strong|b)>([\s\S]*?)<\/(strong|b)>/gi, '**$2**')
+                                        // Handle italic text
+                                        .replace(/<(em|i)>([\s\S]*?)<\/(em|i)>/gi, '_$2_')
+                                        // Handle links
+                                        .replace(/<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)')
+                                        // Remove any remaining HTML tags
+                                        .replace(/<[^>]+>/g, '')
+                                        // Fix spacing issues
+                                        .replace(/\r{3,}/g, '\r\r')
+                                        .replace(/\s+$/gm, '')
+                                        .trim();
+
+                                    return { text, images };
+                                }
+
+                                // Create and send the confirmation card
+                                const { text: convertedText, images } = convertHtmlToMarkdown(savedQuestion.text);
+
+                                const card = {
+                                    contentType: "application/vnd.microsoft.card.adaptive",
+                                    content: {
+                                        type: "AdaptiveCard",
+                                        version: "1.2",
+                                        $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                                        msteams: {
+                                            width: "Full"
+                                        },
+                                        style: "default",
+                                        body: [
+                                            {
+                                                type: "Container",
+                                                style: "emphasis",
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: savedQuestion.title,
+                                                        wrap: true,
+                                                        weight: "Bolder",
+                                                        size: "Large",
+                                                        color: "Default"
+                                                    }
+                                                ],
+                                                spacing: "Medium",
+                                                bleed: true
+                                            },
+                                            {
+                                                type: "Container",
+                                                spacing: "Medium",
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: convertedText.length > 150 ? convertedText.substring(0, 150) + "..." : convertedText,
+                                                        wrap: true,
+                                                        size: "Medium"
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                type: "Container",
+                                                spacing: "Small",
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: `Asked by ${savedQuestion.userName} • ${new Date(savedQuestion.timestamp).toLocaleString()}`,
+                                                        wrap: true,
+                                                        size: "Small",
+                                                        isSubtle: true
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        actions: [
+                                            {
+                                                type: "Action.Submit",
+                                                title: "View Full Question",
+                                                style: "positive",
+                                                data: {
+                                                    msteams: {
+                                                        type: "task/fetch"
+                                                    },
+                                                    taskModule: "viewQuestion",
+                                                    questionId: savedQuestion.id
+                                                }
+                                            }
+                                        ]
+                                    }
+                                };
+                                
+                                // Send the card to the conversation
+                                const message = new builder.Message(session)
+                                    .addAttachment(card);
+                                session.send(message);
+                                
+                                // Close the task module
+                                cb(null, null, 200);
+
+                                // Add view question template
+                                fetchTemplates.viewQuestion = {
+                                    title: "Question Details",
+                                    height: 600,
+                                    width: 800,
+                                    url: `${process.env.BASE_URI}/question/${savedQuestion.id}`,
+                                    fallbackUrl: `${process.env.BASE_URI}/question/${savedQuestion.id}`
+                                };
+                                return;
+                            } catch (error) {
+                                logger.error("Error saving question", { error });
+                                cb(error, null, 500);
+                                return;
+                            }
+                        }
+
+                        // Handle other task module responses
                         switch (invokeValue.data.taskResponse) {
                             case "message":
-                                // Echo the results to the chat stream
                                 session.send("**task/submit results from the Adaptive card:**\n```" + JSON.stringify(invokeValue) + "```");
                                 cb(null, { type: "message" }, 200);
                                 break;
@@ -149,11 +333,9 @@ export class TeamsBot extends builder.UniversalBot {
                                 cb(null, fetchResponse, 200);
                                 break;
                             case "final":
-                                // Don't show anything
                                 cb(null, { type: "final" }, 200);
                                 break;
                             default:
-                                // It's a response from an HTML task module
                                 logger.info("Processing HTML task module response", {
                                     data: invokeValue.data
                                 });
@@ -162,7 +344,7 @@ export class TeamsBot extends builder.UniversalBot {
                         }
                     } else {
                         logger.warn("Received task/submit with undefined data");
-                        cb(null, { type: "message", text: "No data received" }, 200);
+                        cb(null, null, 200);
                     }
                 } catch (error) {
                     logger.error("Error in task/submit", {
