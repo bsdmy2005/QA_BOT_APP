@@ -174,7 +174,32 @@ module.exports.setup = function(app: any): void {
     // API endpoint to add an answer to a question
     app.post("/api/questions/:id/answers", function(req: Request, res: Response): void {
         try {
-            const answer = req.body;
+            // Get Teams context from the request headers with proper fallback
+            const userId = (
+                req.headers['x-ms-client-principal-id'] || 
+                req.headers['userobjectid'] || 
+                'anonymous'
+            ) as string;
+            
+            const userName = (
+                req.headers['x-ms-client-principal-name'] || 
+                req.headers['userprincipalname'] || 
+                'Anonymous User'
+            ) as string;
+
+            logger.info("Adding answer with user context", { 
+                userId, 
+                userName,
+                headers: req.headers 
+            });
+
+            // Create answer with user info from headers
+            const answer = {
+                ...req.body,
+                userId: userId,
+                userName: userName
+            };
+
             const savedAnswer = questionsService.addAnswer(req.params.id, answer);
             if (!savedAnswer) {
                 res.status(404).json({ error: "Question not found" });
@@ -270,6 +295,10 @@ module.exports.setup = function(app: any): void {
     app.get("/question/:id", function(req: Request, res: Response): void {
         logger.info("Rendering question details view");
         try {
+            // Get Teams context from the request headers
+            const userId = req.headers['x-ms-client-principal-id'] as string || 'anonymous';
+            const userName = req.headers['x-ms-client-principal-name'] as string || 'Anonymous User';
+
             // Get the question
             const question = questionsService.getQuestion(req.params.id);
             if (!question) {
@@ -277,10 +306,12 @@ module.exports.setup = function(app: any): void {
                 return;
             }
 
-            // Render the template with the question
+            // Render the template with the question and user info
             res.render("question", { 
                 question,
-                baseUri: process.env.BASE_URI
+                baseUri: process.env.BASE_URI,
+                userId: userId,
+                userName: userName
             });
         } catch (error) {
             logger.error("Error rendering question details view", { error });

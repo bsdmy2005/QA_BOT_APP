@@ -9,6 +9,7 @@ html(lang='en')
         --gray-100: #F3F4F6;
         --gray-200: #E5E7EB;
         --gray-700: #374151;
+        --success-green: #059669;
       }
       
       body {
@@ -55,6 +56,7 @@ html(lang='en')
         color: var(--gray-700);
         line-height: 1.6;
         font-size: 16px;
+        margin-bottom: 32px;
       }
       
       .question-content img {
@@ -86,6 +88,105 @@ html(lang='en')
       .question-content a:hover {
         text-decoration: underline;
       }
+      
+      .answers-section {
+        margin-top: 32px;
+        border-top: 2px solid var(--gray-200);
+        padding-top: 24px;
+      }
+      
+      .answers-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 16px;
+      }
+      
+      .answer-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 24px;
+      }
+      
+      .answer-item {
+        background: var(--gray-100);
+        border-radius: 8px;
+        padding: 16px;
+      }
+      
+      .answer-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+        font-size: 14px;
+      }
+      
+      .answer-author {
+        font-weight: 500;
+      }
+      
+      .answer-date {
+        color: var(--gray-700);
+      }
+      
+      .answer-content {
+        line-height: 1.5;
+      }
+      
+      .answer-form {
+        background: var(--light-blue);
+        border-radius: 8px;
+        padding: 16px;
+      }
+      
+      .answer-input {
+        width: 100%;
+        min-height: 100px;
+        padding: 12px;
+        border: 2px solid var(--gray-200);
+        border-radius: 6px;
+        margin-bottom: 12px;
+        font-family: inherit;
+        font-size: 14px;
+        resize: vertical;
+      }
+      
+      .answer-input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
+      }
+      
+      .submit-button {
+        background: var(--primary-blue);
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      
+      .submit-button:hover {
+        background: #006CBE;
+      }
+      
+      .accepted-answer {
+        border-left: 4px solid var(--success-green);
+      }
+      
+      .accept-button {
+        background: var(--success-green);
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+      }
 
     title Question Details
     link(rel='stylesheet', type='text/css', href='/styles/msteams-16.css')
@@ -100,6 +201,29 @@ html(lang='en')
         div(class='question-meta-item')
           span #{new Date(question.timestamp).toLocaleString()}
       div(class='question-content')!= question.rawHtml || question.text
+      
+      div(class='answers-section')
+        div(class='answers-title') Answers
+        div(class='answer-list')
+          each answer in question.answers || []
+            div(class=`answer-item ${answer.isAccepted ? 'accepted-answer' : ''}`)
+              div(class='answer-meta')
+                div(class='answer-author') #{answer.userName}
+                div(class='answer-date') #{new Date(answer.timestamp).toLocaleString()}
+                if question.userId === userId && !answer.isAccepted
+                  button(class='accept-button' onclick=`acceptAnswer('${question.id}', '${answer.id}')`) Accept Answer
+              div(class='answer-content')!= answer.text
+        
+        div(class='answer-form')
+          textarea(
+            class='answer-input'
+            placeholder='Write your answer here...'
+            id='answerText'
+          )
+          button(
+            class='submit-button'
+            onclick=`submitAnswer('${question.id}')`
+          ) Submit Answer
     
     script.
       microsoftTeams.initialize();
@@ -109,4 +233,64 @@ html(lang='en')
         if (context && context.theme) {
           document.body.className = 'theme-' + context.theme;
         }
-      }); 
+      });
+
+      // Store user information from server
+      const currentUserId = '#{userId}';
+      const currentUserName = '#{userName}';
+      
+      async function submitAnswer(questionId) {
+        const answerText = document.getElementById('answerText').value;
+        if (!answerText.trim()) {
+          alert('Please write an answer before submitting');
+          return;
+        }
+        
+        try {
+          // Get Teams context first
+          microsoftTeams.getContext(async (context) => {
+            const response = await fetch(`/api/questions/${questionId}/answers`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-ms-client-principal-id': context.userObjectId,
+                'x-ms-client-principal-name': context.userPrincipalName
+              },
+              body: JSON.stringify({
+                text: answerText,
+                timestamp: new Date().toISOString()
+              })
+            });
+            
+            if (!response.ok) throw new Error('Failed to submit answer');
+            
+            // Refresh the page to show the new answer
+            window.location.reload();
+          });
+        } catch (error) {
+          console.error('Error submitting answer:', error);
+          alert('Failed to submit answer. Please try again.');
+        }
+      }
+      
+      async function acceptAnswer(questionId, answerId) {
+        try {
+          const response = await fetch(`/api/questions/${questionId}/answers/${answerId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              isAccepted: true
+            })
+          });
+          
+          if (!response.ok) throw new Error('Failed to accept answer');
+          
+          // Refresh the page to show the accepted answer
+          window.location.reload();
+        } catch (error) {
+          console.error('Error accepting answer:', error);
+          alert('Failed to accept answer. Please try again.');
+        }
+      } 
