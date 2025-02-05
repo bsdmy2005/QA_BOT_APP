@@ -402,5 +402,745 @@
     ],
     "id": "5ctvfz",
     "rawHtml": "<p>question with answers</p>"
+  },
+  {
+    "title": "hello world",
+    "text": "<p><strong>sdfsdf</strong></p><img src=\"/uploads/1738297443938-1e63145d-370b-4a32-a7d1-d3d30d4fe4f7.webp\">",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-01-31T04:24:10.840Z",
+    "url": "https://354f15b4cde5.ngrok.app/qna/undefined"
+  },
+  {
+    "title": "hello world",
+    "text": "<p>hello world today</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-02T15:32:22.883Z",
+    "answers": [
+      {
+        "text": "hello answer 1234",
+        "timestamp": "2025-02-02T15:32:40.006Z",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com"
+      }
+    ],
+    "id": "z7jc21",
+    "rawHtml": "<p>hello world today</p>"
+  },
+  {
+    "title": "hello world africa",
+    "text": "<p><strong><em>hello world</em></strong></p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-03T18:21:01.474Z",
+    "answers": [],
+    "id": "ffsktw",
+    "rawHtml": "<p><strong><em>hello world</em></strong></p>"
+  },
+  {
+    "title": "hello tip tap",
+    "text": "<p><em>hello tip tap</em></p><img src=\"/uploads/1738606977587-847896925.png\">",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-03T18:23:09.581Z",
+    "answers": [],
+    "id": "soeqrh",
+    "rawHtml": "<p><em>hello tip tap</em></p><img src=\"/uploads/1738606977587-847896925.png\">"
+  },
+  {
+    "title": "new",
+    "text": "<p><strong>neew ssdf<br><br>Sdfsdf<br><br>Sfdsdf<br>S<br>sdfsdf<br><br>SFdsf</strong><br><br></p><img src=\"/uploads/1738607202307-250703633.png\">",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-03T18:26:48.413Z",
+    "answers": [],
+    "id": "7kzr7s",
+    "rawHtml": "<p><strong>neew ssdf<br><br>Sdfsdf<br><br>Sfdsdf<br>S<br>sdfsdf<br><br>SFdsf</strong><br><br></p><img src=\"/uploads/1738607202307-250703633.png\">"
+  },
+  {
+    "title": "heeloo image",
+    "text": "<p>image test</p><img src=\"/uploads/1738608085949-939813292.png\">",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-03T18:41:34.342Z",
+    "answers": [
+      {
+        "text": "<p>Write your answer here...</p><img src=\"/uploads/1738608464461-222152897.png\">",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-03T18:47:52.167Z"
+      }
+    ],
+    "id": "b7j7o8",
+    "rawHtml": "<p>image test</p><img src=\"/uploads/1738608085949-939813292.png\">"
+  },
+  {
+    "title": "Ant Script check",
+    "text": "<p>Hi all, &nbsp;I need to trigger a live book ANT script after applying an event on a trade. I'm considering capturing the event in the workflow to trigger the ANT script execution. My question is: how can I trigger a shell script from a workflow task that then launches the ANT script?</p><p>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh.</p><p>&nbsp;</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T03:32:46.049Z",
+    "answers": [
+      {
+        "text": "<p>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh</p><p></p><img src=\"/uploads/1738640008211-112851997.png\"><p><br><br><br></p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T03:33:55.514Z"
+      }
+    ],
+    "id": "9v3fll",
+    "rawHtml": "<p>Hi all, &nbsp;I need to trigger a live book ANT script after applying an event on a trade. I'm considering capturing the event in the workflow to trigger the ANT script execution. My question is: how can I trigger a shell script from a workflow task that then launches the ANT script?</p><p>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh.</p><p>&nbsp;</p>"
+  },
+  {
+    "title": "Demo questions",
+    "text": "<p>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br></p><img src=\"/uploads/1738640333314-482333467.png\"><p><br></p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T03:39:11.06Z",
+    "answers": [
+      {
+        "text": "<p>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br></p><img src=\"/uploads/1738640588460-271496294.png\">",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T03:44:02.577Z"
+      },
+      {
+        "text": "<p></p><img src=\"/uploads/1738640746659-344301636.png\"><p>test</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T03:46:02.485Z"
+      }
+    ],
+    "id": "f2vfbl",
+    "rawHtml": "<p>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br></p><img src=\"/uploads/1738640333314-482333467.png\"><p><br></p>"
+  },
+  {
+    "title": "New qyestion set",
+    "text": "<p>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres<br><br></p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T03:46:55.122Z",
+    "answers": [
+      {
+        "text": "<p>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres</p><img src=\"/uploads/1738640830524-365679991.png\"><p>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T03:47:27.243Z"
+      },
+      {
+        "text": "<p>sfsdf</p><p></p><p>sfdfs</p><p></p><p>'ve considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres</p><p></p><p>sfsdfdasdadsad  ads      've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T03:50:39.830Z"
+      }
+    ],
+    "id": "px3642",
+    "rawHtml": "<p>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres<br><br></p>"
+  },
+  {
+    "title": "image format",
+    "text": "<p>'ve considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres<br><br>'ve considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres<br><br>'ve considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T03:51:22.245Z",
+    "answers": [
+      {
+        "text": "<p>'ve considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres      've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T03:51:53.970Z"
+      }
+    ],
+    "id": "gl62vr",
+    "rawHtml": "<p>'ve considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres<br><br>'ve considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres<br><br>'ve considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres</p>"
+  },
+  {
+    "title": "Test layout",
+    "text": "<p>i've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres<br><br></p><img src=\"/uploads/1738641283519-376424640.png\">",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T03:54:50.014Z",
+    "answers": [
+      {
+        "text": "<p>i've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>i've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br></p><img src=\"/uploads/1738641481276-667701204.png\"><p><br></p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T03:58:08.713Z"
+      },
+      {
+        "text": "<p>scsdsdf<br><br>sdfdsf<br><br>sdfsf<br><br></p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:03:11.802Z"
+      },
+      {
+        "text": "<p></p><p>sfdsf</p><p>sfd``ff`</p><p>sdfss`f`ff</p><p></p><img src=\"/uploads/1738642704109-534134508.png\"><p>i've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refreshI've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refreshi've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refreshI've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh     </p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:18:34.811Z"
+      },
+      {
+        "text": "<p>adad<br>ads<br>ASD<br>SD<br>ad<br>Ads<br>asda<br>ads<br>SADAADSa dss<br>ads<br></p><img src=\"/uploads/1738642933611-919835456.png\"><p><br><br></p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:23:10.081Z"
+      },
+      {
+        "text": "<p><img src=\"/uploads/1738643101304-414141066.png\">asad<br><br>ADSAD<br><br>Ads</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:25:19.185Z"
+      }
+    ],
+    "id": "0k9jtq",
+    "rawHtml": "<p>i've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refresh<br><br>I've considered dropping the event XML and using a polling script to execute it, but this doesn't seem elegant. I'm looking for alternative suggestions, particularly around workflow solutions or any other approaches to achieve this goal. I've also considered creating a dummy processing script that calls the ANT shell script, but this would require user action—at that point, they might as well just have IT perform the refres<br><br></p><img src=\"/uploads/1738641283519-376424640.png\">"
+  },
+  {
+    "title": "hello qwreret",
+    "text": "<p>hwllo 12334</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T04:27:27.088Z",
+    "answers": [
+      {
+        "text": "<p>hello answeer </p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:27:39.303Z"
+      }
+    ],
+    "id": "cl95vw",
+    "rawHtml": "<p>hwllo 12334</p>"
+  },
+  {
+    "title": "hello world",
+    "text": "<p>hello woerld. </p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T04:30:34.116Z",
+    "answers": [
+      {
+        "text": "<p>hello 123456</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:30:45.781Z"
+      }
+    ],
+    "id": "19ni3w",
+    "rawHtml": "<p>hello woerld. </p>"
+  },
+  {
+    "title": "ask 123",
+    "text": "<p>ask 12345</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T04:34:03.515Z",
+    "answers": [
+      {
+        "text": "<p>hello world</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:34:15.048Z"
+      }
+    ],
+    "id": "458axj",
+    "rawHtml": "<p>ask 12345</p>"
+  },
+  {
+    "title": "hello world",
+    "text": "<p>where<br>ere<br><br>REE<br><br>ER</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T04:37:10.278Z",
+    "answers": [
+      {
+        "text": "<p>hello test 1234</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:37:24.842Z"
+      },
+      {
+        "text": "<p>3456</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:37:46.532Z"
+      },
+      {
+        "text": "<p>test</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:39:50.512Z"
+      },
+      {
+        "text": "<p>test 345</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:40:00.123Z"
+      }
+    ],
+    "id": "e88yed",
+    "rawHtml": "<p>where<br>ere<br><br>REE<br><br>ER</p>"
+  },
+  {
+    "title": "hello world",
+    "text": "<p>test 1234</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T04:42:10.104Z",
+    "answers": [
+      {
+        "text": "<p>test answer</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:42:21.311Z"
+      },
+      {
+        "text": "<p>tes 4566</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:42:31.001Z"
+      }
+    ],
+    "id": "fvew1y",
+    "rawHtml": "<p>test 1234</p>"
+  },
+  {
+    "title": "hello 1",
+    "text": "<p>hello 1</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T04:44:45.34Z",
+    "answers": [
+      {
+        "text": "<p>hello 2</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:44:54.851Z"
+      }
+    ],
+    "id": "soy6u2",
+    "rawHtml": "<p>hello 1</p>"
+  },
+  {
+    "title": "ressss",
+    "text": "<p>ssssssss</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T04:47:41.286Z",
+    "answers": [
+      {
+        "text": "<p>test</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:49:50.750Z"
+      },
+      {
+        "text": "<p>test 2</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:51:49.639Z"
+      },
+      {
+        "text": "<p>test 4</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:52:04.315Z"
+      },
+      {
+        "text": "<p>hello world</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:54:06.946Z"
+      }
+    ],
+    "id": "yq3jt5",
+    "rawHtml": "<p>ssssssss</p>"
+  },
+  {
+    "title": "hello world",
+    "text": "<p>hello world</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T04:59:01.619Z",
+    "answers": [
+      {
+        "text": "<p>answer</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:59:13.925Z"
+      },
+      {
+        "text": "<p></p><img src=\"/uploads/1738645174851-642232140.png\"><p>adasdasd</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T04:59:47.567Z"
+      }
+    ],
+    "id": "smun7t",
+    "rawHtml": "<p>hello world</p>"
+  },
+  {
+    "title": "hello world",
+    "text": "<p>hello world question details</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:02:12.257Z",
+    "answers": [
+      {
+        "text": "<p>answer details</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:02:29.707Z"
+      },
+      {
+        "text": "<p></p><img src=\"/uploads/1738645375969-371374494.png\">",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:02:59.594Z"
+      }
+    ],
+    "id": "o3c3tj",
+    "rawHtml": "<p>hello world question details</p>"
+  },
+  {
+    "title": "hello world",
+    "text": "<p>hello world</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:06:07.112Z",
+    "answers": [
+      {
+        "text": "<p>test 1234</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:06:19.956Z"
+      }
+    ],
+    "id": "u3r62i",
+    "rawHtml": "<p>hello world</p>"
+  },
+  {
+    "title": "new question",
+    "text": "<p>new question</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:07:17.013Z",
+    "answers": [
+      {
+        "text": "<p>test 12345</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:07:29.094Z"
+      }
+    ],
+    "id": "ntyai7",
+    "rawHtml": "<p>new question</p>"
+  },
+  {
+    "title": "question 1234",
+    "text": "<p>question 1234</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:09:58.595Z",
+    "answers": [
+      {
+        "text": "<p>anwer 1234</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:10:12.891Z"
+      },
+      {
+        "text": "<p>anwer 1234</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:10:13.811Z"
+      }
+    ],
+    "id": "8fpaf3",
+    "rawHtml": "<p>question 1234</p>"
+  },
+  {
+    "title": "quesion test123",
+    "text": "<p>question details 112454</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:12:08.2Z",
+    "answers": [
+      {
+        "text": "<p>hello answers</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:12:23.859Z"
+      }
+    ],
+    "id": "cy0zb3",
+    "rawHtml": "<p>question details 112454</p>"
+  },
+  {
+    "title": "new question",
+    "text": "<p>test question</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:14:19.143Z",
+    "answers": [],
+    "id": "1xzcob",
+    "rawHtml": "<p>test question</p>"
+  },
+  {
+    "title": "hello w232423",
+    "text": "<p>22234324242432423</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:15:46.873Z",
+    "answers": [],
+    "id": "13rpt8",
+    "rawHtml": "<p>22234324242432423</p>"
+  },
+  {
+    "title": "old question",
+    "text": "<p>test 123242342</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:16:29.647Z",
+    "answers": [
+      {
+        "text": "<p>answere 343453</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:16:48.349Z"
+      }
+    ],
+    "id": "l004sd",
+    "rawHtml": "<p>test 123242342</p>"
+  },
+  {
+    "title": "hello questions",
+    "text": "<p>hello questions</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:18:48.657Z",
+    "answers": [],
+    "id": "xpg89p",
+    "rawHtml": "<p>hello questions</p>"
+  },
+  {
+    "title": "new set of 1",
+    "text": "<p>new set of 1 new set of 1</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:20:37.525Z",
+    "answers": [],
+    "id": "6yh089",
+    "rawHtml": "<p>new set of 1 new set of 1</p>"
+  },
+  {
+    "title": "new set of 2",
+    "text": "<p>new set of 122234</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:22:20.857Z",
+    "answers": [
+      {
+        "text": "<p>answer 123556</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:22:34.558Z"
+      },
+      {
+        "text": "<p>answert 454646</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:24:28.879Z"
+      },
+      {
+        "text": "<p>new answers</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:26:01.801Z"
+      },
+      {
+        "text": "<p>new image answer <br><br></p><img src=\"/uploads/1738646803802-148878512.png\">",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:26:47.905Z"
+      }
+    ],
+    "id": "b5k09j",
+    "rawHtml": "<p>new set of 122234</p>"
+  },
+  {
+    "title": "new qs",
+    "text": "<p>new qs</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:30:37.352Z",
+    "answers": [
+      {
+        "text": "<p>new answers</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:30:48.368Z"
+      },
+      {
+        "text": "<p>new answer 2</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:31:10.811Z"
+      }
+    ],
+    "id": "735m42",
+    "rawHtml": "<p>new qs</p>"
+  },
+  {
+    "title": "hello world",
+    "text": "<p>hello world hello world</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:33:54.83Z",
+    "answers": [
+      {
+        "text": "<p>anweret <br><br><br></p><img src=\"/uploads/1738647251094-887937852.png\">",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:34:15.858Z"
+      }
+    ],
+    "id": "enh8y2",
+    "rawHtml": "<p>hello world hello world</p>"
+  },
+  {
+    "title": "test quedstions",
+    "text": "<p>test quedstions</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:36:38.672Z",
+    "answers": [
+      {
+        "text": "<p>hello woeld</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:38:03.284Z"
+      },
+      {
+        "text": "<img src=\"/uploads/1738647497663-439879252.png\">",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:38:21.465Z"
+      },
+      {
+        "text": "<p>answer 23456</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:38:59.492Z"
+      }
+    ],
+    "id": "zsk7b1",
+    "rawHtml": "<p>test quedstions</p>"
+  },
+  {
+    "title": "new question with accept",
+    "text": "<p>new question with accept</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T05:52:33.744Z",
+    "answers": [
+      {
+        "text": "<p>answer accept 1245</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:52:47.626Z"
+      },
+      {
+        "text": "<p>hello world</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T05:58:04.295Z",
+        "id": "7pvp79",
+        "isAccepted": false
+      }
+    ],
+    "id": "aearb7",
+    "rawHtml": "<p>new question with accept</p>"
+  },
+  {
+    "title": "hello world 12313",
+    "text": "<p>hello world 12313</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-04T06:00:42.011Z",
+    "answers": [
+      {
+        "text": "<p>hello world 12345</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T06:00:54.002Z",
+        "id": "dubvze",
+        "isAccepted": false
+      },
+      {
+        "text": "<p>hello world </p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-04T07:19:16.388Z",
+        "id": "sx134c",
+        "isAccepted": false
+      },
+      {
+        "text": "<p>askkk</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-05T03:44:01.663Z",
+        "id": "782ch6",
+        "isAccepted": true
+      }
+    ],
+    "id": "kandu6",
+    "rawHtml": "<p>hello world 12313</p>"
+  },
+  {
+    "title": "question 124",
+    "text": "<p>question 123456</p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-05T03:53:21.393Z",
+    "answers": [
+      {
+        "text": "<p>answer 124</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-05T03:53:34.750Z",
+        "id": "1oets",
+        "isAccepted": false
+      },
+      {
+        "text": "<p>answer 4556</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-05T03:53:53.097Z",
+        "id": "9yr0se",
+        "isAccepted": true
+      },
+      {
+        "text": "<p>answer 786</p>",
+        "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+        "userName": "bereket@elenjicalsolutions.com",
+        "timestamp": "2025-02-05T03:54:20.688Z",
+        "id": "kwj9wv",
+        "isAccepted": false
+      }
+    ],
+    "id": "cdlvlr",
+    "rawHtml": "<p>question 123456</p>"
+  },
+  {
+    "title": "disappear questions",
+    "text": "<p>disappear questions </p>",
+    "userId": "8fc14322-5538-42f1-bb67-29c5a17299d1",
+    "userName": "bereket@elenjicalsolutions.com",
+    "timestamp": "2025-02-05T04:18:33.759Z",
+    "answers": [],
+    "id": "x6beop",
+    "rawHtml": "<p>disappear questions </p>"
   }
 ]

@@ -50,12 +50,14 @@ export const TaskModuleStrings = {
     YouTubeTitle: "Microsoft Ignite 2018 Vision Keynote",
     PowerAppTitle: "PowerApp: Asset Checkout",
     CustomFormTitle: "Custom Form",
+    CustomFormTipTapTitle: "Ask a Question (TipTap Editor)",
     AdaptiveCardTitle: "Create a new job posting",
     AdaptiveCardKitchenSinkTitle: "Adaptive Card: Inputs",
     ActionSubmitResponseTitle: "Action.Submit Response",
     YouTubeName: "YouTube",
     PowerAppName: "PowerApp",
     CustomFormName: "Custom Form",
+    CustomFormTipTapName: "Ask Question (TipTap)",
     AdaptiveCardSingleName: "Adaptive Card - Single",
     AdaptiveCardSequenceName: "Adaptive Card - Sequence",
 };
@@ -66,6 +68,7 @@ export const TaskModuleIds = {
     YouTube: "youtube",
     PowerApp: "powerapp",
     CustomForm: "customform",
+    CustomFormTipTap: "customformtiptap",
     AdaptiveCard1: "adaptivecard1",
     AdaptiveCard2: "adaptivecard2",
 };
@@ -84,6 +87,10 @@ export const TaskModuleSizes = {
     customform: {
         width: 510,
         height: 430
+    },
+    customformtiptap: {
+        width: 1632,
+        height: 1020
     },
     adaptivecard: {
         width: 700,

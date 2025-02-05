@@ -108,7 +108,7 @@ let connector = new msteams.TeamsChatConnector({
 let botSettings = {
     storage: botStorage,
 };
-let bot = new TeamsBot(connector as builder.ChatConnector, botSettings);
+let bot = new TeamsBot(connector as unknown as builder.ChatConnector, botSettings);
 
 // Adding a messaging extension to our bot
 let messagingExtension = new MessagingExtension(bot);

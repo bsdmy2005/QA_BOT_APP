@@ -802,15 +802,58 @@ export const cardTemplates: any = {
         ],
         "version": "1.0"
     },
+    questionFormOptions: {
+        "type": "AdaptiveCard",
+        "body": [
+            {
+                "type": "TextBlock",
+                "size": "Medium",
+                "weight": "Bolder",
+                "text": "Choose a Form Type"
+            },
+            {
+                "type": "TextBlock",
+                "text": "Select which form you would like to use to ask your question:",
+                "wrap": true
+            }
+        ],
+        "actions": [
+            {
+                "type": "Action.OpenUrl",
+                "title": "Rich Text Editor (TipTap)",
+                "url": `${appRoot()}/customformtiptap`
+            },
+            {
+                "type": "Action.OpenUrl",
+                "title": "Simple Form",
+                "url": `${appRoot()}/customform`
+            }
+        ],
+        "version": "1.0"
+    },
 };
 
 export const fetchTemplates: any = {
+    questionformoptions: {
+        title: "Choose Question Form Type",
+        card: cardTemplates.questionFormOptions,
+        height: 300,
+        width: 500
+    },
     customform: {
         title: constants.TaskModuleStrings.CustomFormTitle,
         height: 580,
         width: 920,
         url: `${appRoot()}/customform`,
         fallbackUrl: `${appRoot()}/customform`,
+        completionBotId: process.env.MICROSOFT_APP_ID
+    },
+    customformtiptap: {
+        title: "Ask a Question",
+        height: 1020,
+        width: 1632,
+        url: `${appRoot()}/customform-tiptap`,
+        fallbackUrl: `${appRoot()}/customform-tiptap`,
         completionBotId: process.env.MICROSOFT_APP_ID
     },
     youtube: {

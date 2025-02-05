@@ -1,0 +1,556 @@
+doctype html
+html(lang='en')
+  head
+    title Microsoft Teams Task Module - Q&A Form
+    
+    // Load Teams JS
+    script(src="https://unpkg.com/@microsoft/teams-js@1.3.7/dist/MicrosoftTeams.min.js" integrity="sha384-glExfvkpce98dO2oN+diZ/Luv/5qrZJiOvWCeR8ng/ZxlhpvBgHKeVFRURrh+NEC" crossorigin="anonymous")
+    
+    // Load TipTap via Skypack CDN
+    script(type="module").
+      import { Editor } from 'https://cdn.skypack.dev/@tiptap/core@2.1.7'
+      import StarterKit from 'https://cdn.skypack.dev/@tiptap/starter-kit@2.1.7'
+      import Image from 'https://cdn.skypack.dev/@tiptap/extension-image@2.1.7'
+      import Link from 'https://cdn.skypack.dev/@tiptap/extension-link@2.1.7'
+
+      window.setupTipTap = function() {
+        console.log('Setting up TipTap...');
+        const editorElement = document.querySelector('#editor-content');
+        
+        if (!editorElement) {
+          console.error('Editor element not found!');
+          return;
+        }
+
+        try {
+          window.editor = new Editor({
+            element: editorElement,
+            extensions: [
+              StarterKit.configure({
+                bulletList: {
+                  keepMarks: true,
+                  HTMLAttributes: {
+                    class: 'bullet-list',
+                  },
+                },
+                orderedList: {
+                  keepMarks: true,
+                  HTMLAttributes: {
+                    class: 'ordered-list',
+                  },
+                },
+                listItem: {
+                  HTMLAttributes: {
+                    class: 'list-item',
+                  },
+                },
+              }),
+              Image,
+              Link
+            ],
+            content: '<p>Type your question details here...</p>',
+            editable: true,
+            onCreate() {
+              console.log('Editor created successfully');
+              this.commands.focus('end');
+              window.updateToolbarState();
+            },
+            onUpdate() {
+              console.log('Content updated');
+              window.updateToolbarState();
+            },
+            onSelectionUpdate() {
+              window.updateToolbarState();
+            }
+          });
+
+          // Initialize toolbar
+          window.initializeToolbar();
+          console.log('Editor initialization complete');
+
+          // Add paste event handler for images
+          const prosemirrorElement = editorElement.querySelector('.ProseMirror');
+          if (prosemirrorElement) {
+            prosemirrorElement.addEventListener('paste', async (event) => {
+              console.log('Paste event detected');
+              const items = event.clipboardData?.items;
+              if (!items) return;
+
+              for (const item of items) {
+                console.log('Processing clipboard item:', item.type);
+                if (item.type.startsWith('image/')) {
+                  event.preventDefault();
+                  const file = item.getAsFile();
+                  if (!file) continue;
+
+                  console.log('Processing image file:', file.name, file.size);
+                  if (file.size > 5000000) {
+                    alert("Image is too large. Please use an image under 5MB.");
+                    return;
+                  }
+
+                  const formData = new FormData();
+                  formData.append('image', file);
+
+                  try {
+                    console.log('Uploading image...');
+                    const response = await fetch('/api/upload-image', {
+                      method: 'POST',
+                      body: formData
+                    });
+
+                    if (!response.ok) {
+                      throw new Error('Upload failed');
+                    }
+
+                    const data = await response.json();
+                    console.log('Image uploaded successfully:', data.url);
+                    window.editor.chain().focus().setImage({ src: data.url }).run();
+                  } catch (error) {
+                    console.error('Error uploading pasted image:', error);
+                    alert('Failed to upload image. Please try again.');
+                  }
+                }
+              }
+            });
+            console.log('Paste event handler initialized');
+          } else {
+            console.error('ProseMirror element not found');
+          }
+
+        } catch (error) {
+          console.error('Error creating editor:', error);
+        }
+      }
+    
+    // Load styles
+    link(rel='stylesheet', type='text/css', href='/styles/msteams-16.css')
+    link(rel='stylesheet', type='text/css', href='/styles/custom.css')
+    link(rel='stylesheet', href='https://fonts.googleapis.com/icon?family=Material+Icons')
+    style.
+      :root {
+        --primary-blue: #0078D4;
+        --light-blue: #E5F1FB;
+        --white: #FFFFFF;
+        --gray-100: #F3F4F6;
+        --gray-200: #E5E7EB;
+        --gray-700: #374151;
+      }
+      
+      body {
+        margin: 0;
+        padding: 24px;
+        background-color: var(--white);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        min-width: 1200px;  /* Increased minimum width */
+        min-height: 900px;  /* Increased minimum height */
+      }
+      
+      .surface {
+        background: var(--white);
+        border-radius: 8px;
+        width: 100%;
+        height: 100%;
+        min-height: 880px;  /* Increased minimum height */
+      }
+      
+      .panel {
+        padding: 24px;
+        height: calc(100% - 48px); /* Account for padding */
+      }
+      
+      .question-form {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;  /* Reduced gap between form elements */
+      }
+      
+      .form-field {
+        margin-bottom: 0;
+      }
+      
+      .form-field:last-child {
+        margin-top: 0;  /* Remove auto margin */
+        padding-top: 0;  /* Remove padding */
+      }
+      
+      .form-field label {
+        display: block;
+        margin-bottom: 4px;  /* Reduced margin */
+        font-weight: 500;
+        color: var(--gray-700);
+        font-size: 16px;
+      }
+      
+      .form-field input {
+        width: 100%;
+        padding: 8px 12px;  /* Reduced padding */
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.2s ease;
+        height: 40px;  /* Reduced height */
+        box-sizing: border-box;
+      }
+      
+      .form-field input:focus {
+        outline: none;
+        border-color: var(--primary-blue);
+        box-shadow: 0 0 0 3px var(--light-blue);
+      }
+      
+      #editor-container {
+        height: 620px;  /* Increased height since we saved space elsewhere */
+        border: 2px solid var(--gray-200);
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        margin-bottom: 0;
+      }
+
+      .editor-toolbar {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--gray-200);
+        background-color: var(--gray-100);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+
+      .toolbar-button {
+        padding: 6px;
+        background: var(--white);
+        border: 1px solid var(--gray-200);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 20px;
+        min-width: 32px;
+        height: 32px;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--gray-700);
+        transition: all 0.2s ease;
+      }
+
+      .toolbar-button:hover {
+        background: var(--light-blue);
+        border-color: var(--primary-blue);
+        color: var(--primary-blue);
+      }
+
+      .toolbar-button.is-active {
+        background: var(--primary-blue);
+        border-color: var(--primary-blue);
+        color: var(--white);
+      }
+
+      .toolbar-button i {
+        font-size: 20px;
+      }
+
+      #editor-content {
+        flex-grow: 1;
+        overflow-y: auto;
+        background: var(--white);
+        padding: 0 16px;  /* Increased padding */
+      }
+
+      .ProseMirror {
+        height: 100%;
+        min-height: 100%;
+        padding: 24px;  /* Increased padding */
+        box-sizing: border-box;
+        font-size: 16px;  /* Increased font size */
+        line-height: 1.6;  /* Increased line height */
+      }
+
+      .ProseMirror:focus {
+        outline: none;
+      }
+
+      .ProseMirror p {
+        margin: 0.5em 0;
+      }
+
+      .ProseMirror ul,
+      .ProseMirror ol {
+        padding-left: 24px;
+        margin: 0.5em 0;
+      }
+
+      .ProseMirror ul {
+        list-style-type: disc;
+      }
+
+      .ProseMirror ol {
+        list-style-type: decimal;
+      }
+
+      .ProseMirror li {
+        margin: 0.2em 0;
+      }
+
+      .ProseMirror img {
+        max-width: 100%;
+        height: auto;
+      }
+      
+      .button-primary {
+        background-color: var(--primary-blue);
+        color: var(--white);
+        padding: 8px 16px;  /* Reduced padding */
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;  /* Reduced font size */
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        width: 100%;
+        height: 44px;  /* Reduced height */
+        margin-top: 0;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .button-primary:hover {
+        background-color: #006CBE;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      
+      .button-primary:active {
+        transform: translateY(0);
+        box-shadow: none;
+      }
+      
+  body(class='theme-light')
+    div.surface
+      div.panel
+        form.question-form(name='questionForm', onsubmit='return validateForm()')
+          div.form-field
+            label(for='title') Question Title
+            input#title(type='text', name='title', placeholder='Enter your question title', required)
+          
+          div.form-field
+            label Question Details
+            div#editor-container
+              div.editor-toolbar
+                button.toolbar-button(type='button', data-action='bold')
+                  i.material-icons format_bold
+                button.toolbar-button(type='button', data-action='italic')
+                  i.material-icons format_italic
+                button.toolbar-button(type='button', data-action='bullet-list')
+                  i.material-icons format_list_bulleted
+                button.toolbar-button(type='button', data-action='ordered-list')
+                  i.material-icons format_list_numbered
+                button.toolbar-button(type='button', data-action='image')
+                  i.material-icons image
+              div#editor-content
+          
+          div.form-field
+            button.button-primary(type='submit') Submit Question
+
+    script.
+      // Initialize Teams
+      microsoftTeams.initialize();
+      
+      // Initialize editor when DOM is loaded
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, waiting for TipTap setup...');
+        window.setupTipTap();
+      });
+
+      // Handle the Esc key
+      document.onkeyup = function(event) {
+        if ((event.key === 27) || (event.key === "Escape")) {
+          microsoftTeams.tasks.submitTask(null);
+        }
+      }
+
+      // Make functions available globally
+      window.updateToolbarState = function() {
+        if (!window.editor) return;
+
+        const toolbar = document.querySelector('.editor-toolbar');
+        
+        // Update button states based on current editor state
+        toolbar.querySelector('[data-action="bold"]').classList.toggle('is-active', window.editor.isActive('bold'));
+        toolbar.querySelector('[data-action="italic"]').classList.toggle('is-active', window.editor.isActive('italic'));
+        toolbar.querySelector('[data-action="bullet-list"]').classList.toggle('is-active', window.editor.isActive('bulletList'));
+        toolbar.querySelector('[data-action="ordered-list"]').classList.toggle('is-active', window.editor.isActive('orderedList'));
+      }
+
+      window.initializeToolbar = function() {
+        console.log('Initializing toolbar');
+        const toolbar = document.querySelector('.editor-toolbar');
+        
+        // Text formatting buttons
+        toolbar.querySelector('[data-action="bold"]').addEventListener('click', () => {
+          console.log('Bold button clicked');
+          window.editor.chain().focus().toggleBold().run();
+          window.updateToolbarState();
+        });
+        
+        toolbar.querySelector('[data-action="italic"]').addEventListener('click', () => {
+          console.log('Italic button clicked');
+          window.editor.chain().focus().toggleItalic().run();
+          window.updateToolbarState();
+        });
+        
+        toolbar.querySelector('[data-action="bullet-list"]').addEventListener('click', () => {
+          console.log('Bullet list button clicked');
+          try {
+            window.editor.chain().focus().toggleBulletList().run();
+          } catch (error) {
+            console.error('Error toggling bullet list:', error);
+          }
+          window.updateToolbarState();
+        });
+        
+        toolbar.querySelector('[data-action="ordered-list"]').addEventListener('click', () => {
+          console.log('Ordered list button clicked');
+          try {
+            window.editor.chain().focus().toggleOrderedList().run();
+          } catch (error) {
+            console.error('Error toggling ordered list:', error);
+          }
+          window.updateToolbarState();
+        });
+
+        // Image upload button
+        toolbar.querySelector('[data-action="image"]').addEventListener('click', () => {
+          console.log('Image button clicked');
+          const input = document.createElement('input');
+          input.setAttribute('type', 'file');
+          input.setAttribute('accept', 'image/*');
+          input.click();
+
+          input.onchange = async () => {
+            const file = input.files[0];
+            if (file) {
+              if (file.size > 5000000) {
+                alert("Image is too large. Please use an image under 5MB.");
+                return;
+              }
+
+              const formData = new FormData();
+              formData.append('image', file);
+
+              try {
+                const response = await fetch('/api/upload-image', {
+                  method: 'POST',
+                  body: formData
+                });
+
+                if (!response.ok) {
+                  throw new Error('Upload failed');
+                }
+
+                const data = await response.json();
+                window.editor.chain().focus().setImage({ src: data.url }).run();
+              } catch (error) {
+                console.error('Error uploading image:', error);
+                alert('Failed to upload image. Please try again.');
+              }
+            }
+          };
+        });
+
+        // Initial toolbar state
+        window.updateToolbarState();
+        console.log('Toolbar initialized');
+      }
+
+      function validateForm() {
+        microsoftTeams.getContext(function(context) {
+          // Get the editor content
+          if (!window.editor) {
+            alert("Editor is not initialized. Please try again.");
+            return false;
+          }
+
+          const editorContent = window.editor.getHTML();
+          
+          // Check content size
+          if (editorContent.length > 1000000) {
+            alert("Your question content is too large. Please reduce the size of any images.");
+            return false;
+          }
+
+          // Check if title is empty
+          const title = document.forms["questionForm"]["title"].value.trim();
+          if (!title) {
+            alert("Please enter a question title");
+            return false;
+          }
+
+          // Check if content is empty
+          if (window.editor.isEmpty) {
+            alert("Please enter question details");
+            return false;
+          }
+
+          const questionData = {
+            title: title,
+            text: editorContent,
+            userId: context.userObjectId,
+            userName: context.userPrincipalName || context.upn || "Anonymous User",
+            timestamp: new Date().toISOString(),
+            answers: [],
+            id: generateId(6)
+          };
+
+          // Submit the data and close the task module
+          microsoftTeams.tasks.submitTask(questionData);
+          
+          return false;
+        });
+        return false;
+      }
+
+      function getQueryParameters() {
+        let queryParams = {};
+        location.search.substr(1).split("&").forEach(function(item) {
+          let s = item.split("="),
+          k = s[0],
+          v = s[1] && decodeURIComponent(s[1]);
+          queryParams[k] = v;
+        });
+        return queryParams;
+      }
+
+      function generateId(length) {
+        const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      }
+
+      function setTheme(theme) {
+        if (theme) {
+          document.body.className = 'theme-' + (theme === 'default' ? 'light' : theme);
+        }
+      }
+
+      // Get current Teams theme and set it
+      let currentTheme = "";
+      let queryParameters = getQueryParameters();
+      if (queryParameters["theme"] === undefined) {
+        microsoftTeams.getContext(function(context) {
+          if (context && context.theme) {
+            setTheme(context.theme);
+          }
+        });
+      } else {
+        setTheme(queryParameters["theme"]);
+      }
+    </script> 

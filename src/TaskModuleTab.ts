@@ -25,7 +25,7 @@
 
 import * as microsoftTeams from "@microsoft/teams-js";
 import * as constants from "./constants";
-import { cardTemplates, appRoot } from "./dialogs/CardTemplates";
+import { cardTemplates, appRoot, fetchTemplates } from "./dialogs/CardTemplates";
 import { taskModuleLink } from "./utils/DeepLinks";
 
 declare var appId: any; // Injected at template render time
@@ -119,6 +119,8 @@ document.addEventListener("DOMContentLoaded", function(): void {
         deepLink.href = taskModuleLink(appId, constants.TaskModuleStrings.PowerAppTitle, constants.TaskModuleSizes.powerapp.height, constants.TaskModuleSizes.powerapp.width, `${appRoot()}/${constants.TaskModuleIds.PowerApp}`, null, `${appRoot()}/${constants.TaskModuleIds.PowerApp}`);
         deepLink = document.getElementById("dlCustomForm") as HTMLAnchorElement;
         deepLink.href = taskModuleLink(appId, constants.TaskModuleStrings.CustomFormTitle, constants.TaskModuleSizes.customform.height, constants.TaskModuleSizes.customform.width, `${appRoot()}/${constants.TaskModuleIds.CustomForm}`, null, `${appRoot()}/${constants.TaskModuleIds.CustomForm}`);
+        deepLink = document.getElementById("dlCustomFormTipTap") as HTMLAnchorElement;
+        deepLink.href = taskModuleLink(appId, constants.TaskModuleStrings.CustomFormTipTapTitle, 1200, 1920, `${appRoot()}/${constants.TaskModuleIds.CustomFormTipTap}`, null, `${appRoot()}/${constants.TaskModuleIds.CustomFormTipTap}`);
         deepLink = document.getElementById("dlAdaptiveCard1") as HTMLAnchorElement;
         deepLink.href = taskModuleLink(appId, constants.TaskModuleStrings.AdaptiveCardTitle, constants.TaskModuleSizes.adaptivecard.height, constants.TaskModuleSizes.adaptivecard.width, null, cardTemplates.adaptiveCard);
         deepLink = document.getElementById("dlAdaptiveCard2") as HTMLAnchorElement;
@@ -159,6 +161,24 @@ document.addEventListener("DOMContentLoaded", function(): void {
                                 }
                                 if (result) {
                                     resultsElement.innerHTML = `Result: Name: "${result.name}"; Email: "${result.email}"; Favorite book: "${result.favoriteBook}"`;
+                                }
+                            };
+                            microsoftTeams.tasks.startTask(taskInfo, submitHandler);
+                            break;
+                        case constants.TaskModuleIds.CustomFormTipTap:
+                            taskInfo.title = constants.TaskModuleStrings.CustomFormTipTapTitle;
+                            taskInfo.height = 1020;
+                            taskInfo.width = 1632;
+                            taskInfo.url = `${appRoot()}/${this.id.toLowerCase()}?theme={theme}`;
+                            submitHandler = (err: string, result: any): void => {
+                                // Unhide and populate customFormResults
+                                let resultsElement = document.getElementById("customFormResults");
+                                resultsElement.style.display = "block";
+                                if (err) {
+                                    resultsElement.innerHTML = `Error/Cancel: ${err}`;
+                                }
+                                if (result) {
+                                    resultsElement.innerHTML = `Result: Title: "${result.title}"; Content: "${result.text}"`;
                                 }
                             };
                             microsoftTeams.tasks.startTask(taskInfo, submitHandler);

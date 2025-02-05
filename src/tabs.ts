@@ -128,6 +128,29 @@ module.exports.setup = function(app: any): void {
         }
     });
 
+    app.get("/customform-tiptap", function(req: Request, res: Response): void {
+        logger.info("Rendering customform-tiptap view", {
+            appId: process.env.MICROSOFT_APP_ID,
+            baseUri: process.env.BASE_URI
+        });
+        try {
+            // Get Teams context from the request headers
+            const userId = req.headers['x-ms-client-principal-id'] as string || 'anonymous';
+            const userName = req.headers['x-ms-client-principal-name'] as string || 'Anonymous User';
+
+            // Render the template with user info
+            res.render("customform-tiptap", { 
+                appId: process.env.MICROSOFT_APP_ID,
+                baseUri: process.env.BASE_URI,
+                userId: userId,
+                userName: userName
+            });
+        } catch (error) {
+            logger.error("Error rendering customform-tiptap view", { error });
+            res.status(500).send("Error rendering customform-tiptap view");
+        }
+    });
+
     // API endpoint to handle question submission
     app.post("/api/questions", function(req: Request, res: Response): void {
         try {
@@ -212,23 +235,68 @@ module.exports.setup = function(app: any): void {
         }
     });
 
-    // API endpoint to update answer status
-    app.put("/api/questions/:questionId/answers/:answerId", function(req: Request, res: Response): void {
+    // API endpoint to accept an answer
+    app.put("/api/questions/:questionId/answers/:answerId/accept", function(req: Request, res: Response): void {
         try {
-            const { isAccepted } = req.body;
-            const success = questionsService.updateAnswerStatus(
-                req.params.questionId,
-                req.params.answerId,
-                isAccepted
-            );
-            if (!success) {
-                res.status(404).json({ error: "Question or answer not found" });
+            // Get Teams context from the request headers with proper fallback
+            const userId = (
+                req.headers['x-ms-client-principal-id'] || 
+                req.headers['userobjectid'] || 
+                'anonymous'
+            ) as string;
+
+            logger.info("Accepting answer with user context", { 
+                userId,
+                questionId: req.params.questionId,
+                answerId: req.params.answerId,
+                headers: req.headers
+            });
+            
+            // Get the question to verify ownership
+            const question = questionsService.getQuestion(req.params.questionId);
+            if (!question) {
+                logger.warn("Question not found for accept answer", {
+                    questionId: req.params.questionId
+                });
+                res.status(404).json({ error: "Question not found" });
                 return;
             }
-            res.status(200).json({ success: true });
+
+            // Verify the user is the question owner
+            if (question.userId !== userId) {
+                logger.warn("Unauthorized accept answer attempt", {
+                    questionUserId: question.userId,
+                    requestUserId: userId
+                });
+                res.status(403).json({ error: "Only the question owner can accept answers" });
+                return;
+            }
+
+            const success = questionsService.acceptAnswer(
+                req.params.questionId,
+                req.params.answerId
+            );
+
+            if (!success) {
+                logger.warn("Answer not found for accept", {
+                    questionId: req.params.questionId,
+                    answerId: req.params.answerId
+                });
+                res.status(404).json({ error: "Answer not found" });
+                return;
+            }
+
+            // Get the updated question to return
+            const updatedQuestion = questionsService.getQuestion(req.params.questionId);
+            logger.info("Successfully accepted answer", {
+                questionId: req.params.questionId,
+                answerId: req.params.answerId,
+                updatedQuestion
+            });
+            res.status(200).json(updatedQuestion);
         } catch (error) {
-            logger.error("Error updating answer status", { error });
-            res.status(500).json({ error: "Failed to update answer status" });
+            logger.error("Error accepting answer", { error });
+            res.status(500).json({ error: "Failed to accept answer" });
         }
     });
 
@@ -295,9 +363,25 @@ module.exports.setup = function(app: any): void {
     app.get("/question/:id", function(req: Request, res: Response): void {
         logger.info("Rendering question details view");
         try {
-            // Get Teams context from the request headers
-            const userId = req.headers['x-ms-client-principal-id'] as string || 'anonymous';
-            const userName = req.headers['x-ms-client-principal-name'] as string || 'Anonymous User';
+            // Get Teams context from the request headers with proper fallback
+            const userId = (
+                req.headers['x-ms-client-principal-id'] || 
+                req.headers['userobjectid'] || 
+                'anonymous'
+            ) as string;
+            
+            const userName = (
+                req.headers['x-ms-client-principal-name'] || 
+                req.headers['userprincipalname'] || 
+                'Anonymous User'
+            ) as string;
+
+            logger.info("User context for question view", { 
+                userId, 
+                userName,
+                headers: req.headers,
+                allHeaders: JSON.stringify(req.headers)
+            });
 
             // Get the question
             const question = questionsService.getQuestion(req.params.id);
@@ -306,12 +390,25 @@ module.exports.setup = function(app: any): void {
                 return;
             }
 
+            // Check if current user is the question owner
+            const isQuestionOwner = question.userId === userId;
+            logger.info("Question ownership check", { 
+                isQuestionOwner, 
+                questionUserId: question.userId, 
+                currentUserId: userId,
+                question: JSON.stringify(question),
+                userIdType: typeof userId,
+                questionUserIdType: typeof question.userId,
+                exactMatch: `${userId} === ${question.userId}`
+            });
+
             // Render the template with the question and user info
             res.render("question", { 
                 question,
                 baseUri: process.env.BASE_URI,
                 userId: userId,
-                userName: userName
+                userName: userName,
+                isQuestionOwner: isQuestionOwner
             });
         } catch (error) {
             logger.error("Error rendering question details view", { error });

@@ -24,7 +24,7 @@
     "accentColor": "#020081",
     "configurableTabs": [
         {
-            "configurationUrl": "https://354f15b4cde5.ngrok.app/configure",
+            "configurationUrl": "https://d0bf3e37d353.ngrok.app/configure",
             "canUpdateConfiguration": true,
             "scopes": [
                 "team",
@@ -36,8 +36,8 @@
         {
             "entityId": "com.microsoft.teams.taskmoduletester",
             "name": "Tasks!",
-            "contentUrl": "https://354f15b4cde5.ngrok.app/taskmodule",
-            "websiteUrl": "https://354f15b4cde5.ngrok.app/taskmodule",
+            "contentUrl": "https://d0bf3e37d353.ngrok.app/taskmodule",
+            "websiteUrl": "https://d0bf3e37d353.ngrok.app/taskmodule",
             "scopes": [
                 "personal"
             ]
@@ -121,6 +121,6 @@
         "messageTeamMembers"
     ],
     "validDomains": [
-        "https://354f15b4cde5.ngrok.app"
+        "https://d0bf3e37d353.ngrok.app"
     ]
 }

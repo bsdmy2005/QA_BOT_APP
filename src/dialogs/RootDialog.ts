@@ -47,6 +47,42 @@ export class RootDialog extends builder.IntentDialog
         this.matches(/actester/i, constants.DialogId.ACTester);
         new BotFrameworkCard(constants.DialogId.BFCard).register(bot, this);
         this.matches(/bfcard/i, constants.DialogId.BFCard);
+        this.matches(/^ask/i, (session) => {
+            // Create a card with a button to launch the TipTap form
+            const card = {
+                contentType: "application/vnd.microsoft.card.adaptive",
+                content: {
+                    type: "AdaptiveCard",
+                    version: "1.2",
+                    body: [
+                        {
+                            type: "TextBlock",
+                            text: "Ask a Question",
+                            size: "Large",
+                            weight: "Bolder"
+                        },
+                        {
+                            type: "TextBlock",
+                            text: "Click the button below to ask your question using our rich text editor.",
+                            wrap: true
+                        }
+                    ],
+                    actions: [
+                        {
+                            type: "Action.Submit",
+                            title: "Ask Question",
+                            data: {
+                                msteams: {
+                                    type: "task/fetch"
+                                },
+                                taskModule: "askquestion"
+                            }
+                        }
+                    ]
+                }
+            };
+            session.send(new builder.Message(session).addAttachment(card));
+        });
     }
 
     // Handle start of dialog

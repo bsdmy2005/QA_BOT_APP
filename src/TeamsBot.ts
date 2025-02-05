@@ -30,6 +30,7 @@ import { RootDialog } from "./dialogs/RootDialog";
 import { fetchTemplates, cardTemplates } from "./dialogs/CardTemplates";
 import { renderACAttachment } from "./utils";
 import { questionsService } from "./services/questions-service";
+import { TaskModuleSizes } from "./constants";
 
 export class TeamsBot extends builder.UniversalBot {
 
@@ -105,14 +106,33 @@ export class TeamsBot extends builder.UniversalBot {
                                 type: "continue",
                                 value: {
                                     title: "Question Details",
-                                    height: 720,
-                                    width: 1000,
+                                    height: 1020,
+                                    width: 1632,
                                     url: `${process.env.BASE_URI}/question/${questionId}`,
                                     fallbackUrl: `${process.env.BASE_URI}/question/${questionId}`
                                 }
                             }
                         };
                         logger.info("Sending view question response", { response });
+                        cb(null, response, 200);
+                        return;
+                    }
+
+                    if (taskModule === "askquestion") {
+                        // Create a template for the TipTap question form
+                        const response = {
+                            task: {
+                                type: "continue",
+                                value: {
+                                    title: "Ask a Question",
+                                    height: 1020,
+                                    width: 1632,
+                                    url: `${process.env.BASE_URI}/customform-tiptap`,
+                                    fallbackUrl: `${process.env.BASE_URI}/customform-tiptap`
+                                }
+                            }
+                        };
+                        logger.info("Sending ask question response", { response });
                         cb(null, response, 200);
                         return;
                     }
@@ -154,7 +174,325 @@ export class TeamsBot extends builder.UniversalBot {
                     });
 
                     if (invokeValue.data !== undefined) {
-                        // Save the question if it's from our custom form
+                        // Handle answer acceptance
+                        if (invokeValue.data.type === "answer_accepted") {
+                            try {
+                                const questionData = invokeValue.data.data.question;
+                                const answers = invokeValue.data.data.answers;
+
+                                // Create and send the updated card
+                                const card = {
+                                    contentType: "application/vnd.microsoft.card.adaptive",
+                                    content: {
+                                        type: "AdaptiveCard",
+                                        version: "1.2",
+                                        $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                                        msteams: {
+                                            width: "Full"
+                                        },
+                                        style: "default",
+                                        body: [
+                                            {
+                                                type: "Container",
+                                                style: "emphasis",
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: "✨ Question",
+                                                        size: "Small",
+                                                        weight: "Bolder",
+                                                        color: "Accent",
+                                                        spacing: "Small"
+                                                    },
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: questionData.title,
+                                                        wrap: true,
+                                                        weight: "Bolder",
+                                                        size: "ExtraLarge",
+                                                        color: "Default",
+                                                        spacing: "Small"
+                                                    }
+                                                ],
+                                                spacing: "Large",
+                                                bleed: true
+                                            },
+                                            {
+                                                type: "Container",
+                                                spacing: "Medium",
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: `Posted by ${questionData.userName} • ${new Date(questionData.timestamp).toLocaleString()}`,
+                                                        wrap: true,
+                                                        size: "Small",
+                                                        isSubtle: true,
+                                                        spacing: "Small"
+                                                    }
+                                                ],
+                                                style: "default"
+                                            },
+                                            {
+                                                type: "Container",
+                                                spacing: "Large",
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: questionData.text.replace(/<[^>]*>/g, ''),
+                                                        wrap: true,
+                                                        size: "Medium",
+                                                        spacing: "Medium"
+                                                    }
+                                                ],
+                                                style: "default"
+                                            },
+                                            {
+                                                type: "Container",
+                                                spacing: "ExtraLarge",
+                                                separator: true,
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: `💬 Answers (${answers.length})`,
+                                                        wrap: true,
+                                                        weight: "Bolder",
+                                                        size: "Medium",
+                                                        color: "Accent",
+                                                        spacing: "Medium"
+                                                    }
+                                                ]
+                                            },
+                                            ...answers.map((answer, index) => ({
+                                                type: "Container",
+                                                spacing: index === 0 ? "Medium" : "Large",
+                                                style: answer.isAccepted ? "emphasis" : "default",
+                                                items: [
+                                                    {
+                                                        type: "Container",
+                                                        spacing: "None",
+                                                        items: [
+                                                            {
+                                                                type: "TextBlock",
+                                                                text: answer.isAccepted ? "✅ Accepted Answer" : `Answer ${index + 1}`,
+                                                                wrap: true,
+                                                                size: "Small",
+                                                                weight: "Bolder",
+                                                                color: answer.isAccepted ? "Good" : "Accent",
+                                                                spacing: "Small"
+                                                            },
+                                                            {
+                                                                type: "TextBlock",
+                                                                text: `${answer.userName} • ${new Date(answer.timestamp).toLocaleString()}`,
+                                                                wrap: true,
+                                                                size: "Small",
+                                                                isSubtle: true,
+                                                                spacing: "Small"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: answer.text.replace(/<[^>]*>/g, ''),
+                                                        wrap: true,
+                                                        size: "Medium",
+                                                        spacing: "Medium"
+                                                    }
+                                                ],
+                                                separator: true
+                                            }))
+                                        ],
+                                        actions: [
+                                            {
+                                                type: "Action.Submit",
+                                                title: "View Full Question & Answers",
+                                                style: "positive",
+                                                data: {
+                                                    msteams: {
+                                                        type: "task/fetch"
+                                                    },
+                                                    taskModule: "viewQuestion",
+                                                    questionId: questionData.id
+                                                }
+                                            }
+                                        ]
+                                    }
+                                };
+
+                                // Send the updated card
+                                const message = new builder.Message(session)
+                                    .addAttachment(card);
+                                session.send(message);
+
+                                // Close the task module
+                                cb(null, null, 200);
+                                return;
+                            } catch (error) {
+                                logger.error("Error handling answer acceptance", { error });
+                                cb(error, null, 500);
+                                return;
+                            }
+                        }
+
+                        // Handle answer submission
+                        if (invokeValue.data.type === "answer_submitted") {
+                            try {
+                                const questionData = invokeValue.data.data.question;
+                                const answers = invokeValue.data.data.answers;
+
+                                // Create and send the updated card
+                                const card = {
+                                    contentType: "application/vnd.microsoft.card.adaptive",
+                                    content: {
+                                        type: "AdaptiveCard",
+                                        version: "1.2",
+                                        $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                                        msteams: {
+                                            width: "Full"
+                                        },
+                                        style: "default",
+                                        body: [
+                                            {
+                                                type: "Container",
+                                                style: "emphasis",
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: "✨ Question",
+                                                        size: "Small",
+                                                        weight: "Bolder",
+                                                        color: "Accent",
+                                                        spacing: "Small"
+                                                    },
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: questionData.title,
+                                                        wrap: true,
+                                                        weight: "Bolder",
+                                                        size: "ExtraLarge",
+                                                        color: "Default",
+                                                        spacing: "Small"
+                                                    }
+                                                ],
+                                                spacing: "Large",
+                                                bleed: true
+                                            },
+                                            {
+                                                type: "Container",
+                                                spacing: "Medium",
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: `Posted by ${questionData.userName} • ${new Date(questionData.timestamp).toLocaleString()}`,
+                                                        wrap: true,
+                                                        size: "Small",
+                                                        isSubtle: true,
+                                                        spacing: "Small"
+                                                    }
+                                                ],
+                                                style: "default"
+                                            },
+                                            {
+                                                type: "Container",
+                                                spacing: "Large",
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: questionData.text.replace(/<[^>]*>/g, ''),
+                                                        wrap: true,
+                                                        size: "Medium",
+                                                        spacing: "Medium"
+                                                    }
+                                                ],
+                                                style: "default"
+                                            },
+                                            {
+                                                type: "Container",
+                                                spacing: "ExtraLarge",
+                                                separator: true,
+                                                items: [
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: `💬 Answers (${answers.length})`,
+                                                        wrap: true,
+                                                        weight: "Bolder",
+                                                        size: "Medium",
+                                                        color: "Accent",
+                                                        spacing: "Medium"
+                                                    }
+                                                ]
+                                            },
+                                            ...answers.map((answer: any, index: number) => ({
+                                                type: "Container",
+                                                spacing: index === 0 ? "Medium" : "Large",
+                                                style: answer.isAccepted ? "emphasis" : "default",
+                                                items: [
+                                                    {
+                                                        type: "Container",
+                                                        spacing: "None",
+                                                        items: [
+                                                            {
+                                                                type: "TextBlock",
+                                                                text: answer.isAccepted ? "✅ Accepted Answer" : `Answer ${index + 1}`,
+                                                                wrap: true,
+                                                                size: "Small",
+                                                                weight: "Bolder",
+                                                                color: answer.isAccepted ? "Good" : "Accent",
+                                                                spacing: "Small"
+                                                            },
+                                                            {
+                                                                type: "TextBlock",
+                                                                text: `${answer.userName} • ${new Date(answer.timestamp).toLocaleString()}`,
+                                                                wrap: true,
+                                                                size: "Small",
+                                                                isSubtle: true,
+                                                                spacing: "Small"
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        type: "TextBlock",
+                                                        text: answer.text.replace(/<[^>]*>/g, ''),
+                                                        wrap: true,
+                                                        size: "Medium",
+                                                        spacing: "Medium"
+                                                    }
+                                                ],
+                                                separator: true
+                                            }))
+                                        ],
+                                        actions: [
+                                            {
+                                                type: "Action.Submit",
+                                                title: "View Full Question & Answers",
+                                                style: "positive",
+                                                data: {
+                                                    msteams: {
+                                                        type: "task/fetch"
+                                                    },
+                                                    taskModule: "viewQuestion",
+                                                    questionId: questionData.id
+                                                }
+                                            }
+                                        ]
+                                    }
+                                };
+
+                                // Send the updated card
+                                const message = new builder.Message(session)
+                                    .addAttachment(card);
+                                session.send(message);
+
+                                // Close the task module for answers
+                                cb(null, null, 200);
+                                return;
+                            } catch (error) {
+                                logger.error("Error handling answer submission", { error });
+                                cb(error, null, 500);
+                                return;
+                            }
+                        }
+
+                        // Handle question submission
                         if (invokeValue.data.title && invokeValue.data.text && invokeValue.data.userId) {
                             try {
                                 // Format the text with markdown
@@ -299,17 +637,8 @@ export class TeamsBot extends builder.UniversalBot {
                                     .addAttachment(card);
                                 session.send(message);
                                 
-                                // Close the task module
+                                // Close the task module for answers
                                 cb(null, null, 200);
-
-                                // Add view question template
-                                fetchTemplates.viewQuestion = {
-                                    title: "Question Details",
-                                    height: 600,
-                                    width: 800,
-                                    url: `${process.env.BASE_URI}/question/${savedQuestion.id}`,
-                                    fallbackUrl: `${process.env.BASE_URI}/question/${savedQuestion.id}`
-                                };
                                 return;
                             } catch (error) {
                                 logger.error("Error saving question", { error });

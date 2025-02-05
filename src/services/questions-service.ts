@@ -74,26 +74,56 @@ class QuestionsService {
       return null;
     }
 
-    question.answers.push(answer);
+    // Initialize answer with isAccepted property
+    const newAnswer = {
+      ...answer,
+      id: Math.random().toString(36).substring(7), // Generate a simple ID
+      isAccepted: false
+    };
+
+    question.answers.push(newAnswer);
     this.writeQuestions(questions);
-    return answer;
+    return newAnswer;
   }
 
-  public updateAnswerStatus(questionId: string, answerId: string, isAccepted: boolean): boolean {
+  public acceptAnswer(questionId: string, answerId: string): boolean {
     const questions = this.readQuestions();
     const question = questions.find(q => q.id === questionId);
     
     if (!question) {
+      logger.warn('Question not found for accept answer', { questionId });
       return false;
     }
 
+    logger.info('Found question for accept answer', { 
+      questionId,
+      answerId,
+      currentAnswers: question.answers.map(a => ({ id: a.id, isAccepted: a.isAccepted }))
+    });
+
+    // First, set all answers to not accepted
+    question.answers.forEach(answer => {
+      answer.isAccepted = false;
+    });
+
+    // Then find and accept the specific answer
     const answer = question.answers.find(a => a.id === answerId);
     if (!answer) {
+      logger.warn('Answer not found in question', { 
+        questionId, 
+        answerId,
+        availableAnswerIds: question.answers.map(a => a.id)
+      });
       return false;
     }
 
-    answer.isAccepted = isAccepted;
+    answer.isAccepted = true;
     this.writeQuestions(questions);
+    logger.info('Successfully accepted answer', {
+      questionId,
+      answerId,
+      updatedAnswers: question.answers.map(a => ({ id: a.id, isAccepted: a.isAccepted }))
+    });
     return true;
   }
 }
