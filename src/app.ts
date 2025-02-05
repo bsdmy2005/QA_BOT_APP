@@ -25,34 +25,35 @@ import * as dotenv from "dotenv";
 dotenv.config(); // Load .env file from project root
 
 import express from "express";
-import favicon from "serve-favicon";
 import * as bodyParser from "body-parser";
 import * as path from "path";
-import * as logger from "winston";
 import * as winston from "winston";
 import * as builder from "botbuilder";
 import * as msteams from "botbuilder-teams";
 import * as storage from "./storage";
 import { TeamsBot } from "./TeamsBot";
-import { MessagingExtension } from "./MessagingExtension";
 import uploadRouter from './routes/upload-image';
 
+// Environment variables
 const PORT = parseInt(process.env.PORT || "3978", 10);
 const BASE_URI = process.env.BASE_URI || `http://localhost:${PORT}`;
+const MONGODB_CONNECTION_STRING = process.env.MONGODB_CONNECTION_STRING;
+const MONGODB_BOT_STATE_COLLECTION = process.env.MONGODB_BOT_STATE_COLLECTION || "botstate";
+const BOT_STORAGE = process.env.BOT_STORAGE;
+const MICROSOFT_APP_ID = process.env.MICROSOFT_APP_ID;
+const MICROSOFT_APP_PASSWORD = process.env.MICROSOFT_APP_PASSWORD;
 
-// Configure logging
-logger.remove(logger.transports.Console);
-logger.add(logger.transports.Console, {
-    level: 'debug',
-    handleExceptions: true,
-    timestamp: true,
-    colorize: true,
-    json: false,
-    prettyPrint: true
-});
+// Initialize logger
+initLogger();
 
+// Create Express app
 const app = express();
 app.set("port", PORT);
+
+// Configure middleware
+app.use(express.static(path.join(__dirname, "../../../public")));
+app.use(bodyParser.json());
+app.use(express.static('public'));
 
 // Add CORS support for Teams
 app.use((req, res, next) => {
@@ -64,7 +65,7 @@ app.use((req, res, next) => {
 
 // Add request logging
 app.use((req, res, next) => {
-    logger.info(`Incoming request: ${req.method} ${req.url}`, {
+    winston.info(`Incoming request: ${req.method} ${req.url}`, {
         headers: req.headers,
         query: req.query,
         body: req.body
@@ -72,101 +73,80 @@ app.use((req, res, next) => {
     next();
 });
 
-// Add error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    logger.error('Error handling request', err);
-    res.status(500).send('Internal Server Error');
-});
-
-app.use(express.static(path.join(__dirname, "../../../public")));
-app.use(bodyParser.json());
-
 // Configure bot storage
-let botStorageProvider = process.env.BOT_STORAGE;
-let botStorage = null;
-const mongoDbCollection = process.env.MONGODB_BOT_STATE_COLLECTION || "botstate";
-const mongoDbConnection = process.env.MONGODB_CONNECTION_STRING;
-
-if (botStorageProvider === "mongodb") {
-    if (!mongoDbConnection) {
+let botStorage: builder.IBotStorage;
+if (BOT_STORAGE === "mongodb") {
+    if (!MONGODB_CONNECTION_STRING) {
         throw new Error("MONGODB_CONNECTION_STRING environment variable is required when using mongodb storage");
     }
     botStorage = new storage.MongoDbBotStorage(
-        mongoDbCollection,
-        mongoDbConnection
+        MONGODB_BOT_STATE_COLLECTION,
+        MONGODB_CONNECTION_STRING
     );
+    winston.info("Using MongoDB for bot storage");
 } else {
-    // Default to memory storage
     botStorage = new builder.MemoryBotStorage();
+    winston.info("Using in-memory bot storage");
 }
 
 // Create bot
-let connector = new msteams.TeamsChatConnector({
-    appId: process.env.MICROSOFT_APP_ID,
-    appPassword: process.env.MICROSOFT_APP_PASSWORD,
+const connector = new msteams.TeamsChatConnector({
+    appId: MICROSOFT_APP_ID,
+    appPassword: MICROSOFT_APP_PASSWORD,
 });
-let botSettings = {
+
+const botSettings = {
     storage: botStorage,
 };
-let bot = new TeamsBot(connector as unknown as builder.ChatConnector, botSettings);
 
-// Adding a messaging extension to our bot
-let messagingExtension = new MessagingExtension(bot);
+const bot = new TeamsBot(connector as unknown as builder.ChatConnector, botSettings);
 
-// Set up route for the bot to listen.
-// NOTE: This endpoint cannot be changed and must be api/messages
+// Set up bot endpoint
 app.post("/api/messages", connector.listen());
 
 // Log bot errors
 bot.on("error", (error: Error) => {
-    logger.error(error.message);
+    winston.error("Bot error:", error);
 });
 
-// Adding tabs to our app. This will setup routes to various views
+// Configure routes
+app.use('/api/upload-image', uploadRouter);
+
+// Configure tabs and views
 let tabs = require("./tabs");
 tabs.setup(app);
 
-// Configure ping route
+// Health check endpoint
 app.get("/ping", (req: express.Request, res: express.Response) => {
     res.status(200).send("OK");
 });
 
-// Serve static files from public directory
-app.use(express.static('public'));
+// Error handling middleware
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    winston.error('Error handling request:', err);
+    res.status(500).send('Internal Server Error');
+});
 
-// Add upload route
-app.use('/api/upload-image', uploadRouter);
-
-// Start our nodejs app
-app.listen(PORT, "0.0.0.0", function(): void {
-    logger.info(`Server Configuration:`, {
+// Start server
+app.listen(PORT, "0.0.0.0", () => {
+    winston.info(`Server Configuration:`, {
         port: PORT,
         baseUri: BASE_URI,
         environment: process.env.NODE_ENV || 'development'
-});
-
-    logger.info(`Server is running on port ${PORT}`);
-    logger.info(`Bot messaging endpoint: ${BASE_URI}/api/messages`);
-});
-
-function initLogger(): void {
-
-    logger.addColors({
-        error: "red",
-        warn:  "yellow",
-        info:  "green",
-        verbose: "cyan",
-        debug: "blue",
-        silly: "magenta",
     });
 
-    logger.remove(logger.transports.Console);
-    logger.add(logger.transports.Console,
-        {
-            timestamp: () => { return new Date().toLocaleTimeString(); },
-            colorize: (process.env.MONOCHROME_CONSOLE) ? false : true,
-            prettyPrint: true,
-            level: "debug",
-        },
-    );
+    winston.info(`Server is running on port ${PORT}`);
+    winston.info(`Bot messaging endpoint: ${BASE_URI}/api/messages`);
+});
+
+// Logger initialization
+function initLogger(): void {
+    winston.configure({
+        transports: [
+            new winston.transports.Console({
+                level: process.env.LOG_LEVEL || 'info',
+                handleExceptions: true
+            })
+        ]
+    });
 }

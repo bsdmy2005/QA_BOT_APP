@@ -50,27 +50,9 @@ module.exports.setup = function(app: any): void {
         next();
     });
 
-    // Setup home page
+    // Setup home page to show questions list
     app.get("/", function(req: Request, res: Response): void {
-        res.render("hello");
-    });
-
-    // Setup the static tab
-    app.get("/hello", function(req: Request, res: Response): void {
-        res.render("hello");
-    });
-
-    // Setup the configure tab, with first and second as content tabs
-    app.get("/configure", function(req: Request, res: Response): void {
-        res.render("configure");
-    });
-
-    app.get("/first", function(req: Request, res: Response): void {
-        res.render("first");
-    });
-
-    app.get("/second", function(req: Request, res: Response): void {
-        res.render("second");
+        res.render("questions");
     });
 
     app.get("/taskmodule", function(req: Request, res: Response): void {
@@ -83,49 +65,6 @@ module.exports.setup = function(app: any): void {
             appId: process.env.MICROSOFT_APP_ID,
             baseUri: process.env.BASE_URI
         });
-    });
-
-    app.get("/youtube", function(req: Request, res: Response): void {
-        logger.info("Rendering youtube view");
-        try {
-            res.render("youtube");
-        } catch (error) {
-            logger.error("Error rendering youtube view", { error });
-            res.status(500).send("Error rendering youtube view");
-        }
-    });
-
-    app.get("/powerapp", function(req: Request, res: Response): void {
-        logger.info("Rendering powerapp view");
-        try {
-            res.render("powerapp");
-        } catch (error) {
-            logger.error("Error rendering powerapp view", { error });
-            res.status(500).send("Error rendering powerapp view");
-        }
-    });
-
-    app.get("/customform", function(req: Request, res: Response): void {
-        logger.info("Rendering customform view", {
-            appId: process.env.MICROSOFT_APP_ID,
-            baseUri: process.env.BASE_URI
-        });
-        try {
-            // Get Teams context from the request headers
-            const userId = req.headers['x-ms-client-principal-id'] as string || 'anonymous';
-            const userName = req.headers['x-ms-client-principal-name'] as string || 'Anonymous User';
-
-            // Render the template with user info
-            res.render("customform", { 
-                appId: process.env.MICROSOFT_APP_ID,
-                baseUri: process.env.BASE_URI,
-                userId: userId,
-                userName: userName
-            });
-        } catch (error) {
-            logger.error("Error rendering customform view", { error });
-            res.status(500).send("Error rendering customform view");
-        }
     });
 
     app.get("/customform-tiptap", function(req: Request, res: Response): void {

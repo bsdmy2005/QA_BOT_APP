@@ -28,7 +28,7 @@ import { cardTemplates, fetchTemplates, appRoot } from "./CardTemplates";
 import { taskModuleLink } from "../utils/DeepLinks";
 import { renderCard } from "../utils/CardUtils";
 
-// Dialog for the Adaptive Card tester
+// Dialog for handling Q&A functionality
 export class BotFrameworkCard extends builder.IntentDialog
 {
     constructor(private dialogId: string) {
@@ -55,49 +55,24 @@ export class BotFrameworkCard extends builder.IntentDialog
         let appInfo = {
             appId: process.env.MICROSOFT_APP_ID,
         };
+
         let taskModuleUrls = {
-            url1: taskModuleLink(appInfo.appId, constants.TaskModuleStrings.YouTubeTitle, constants.TaskModuleSizes.youtube.height, constants.TaskModuleSizes.youtube.width, `${appRoot()}/${constants.TaskModuleIds.YouTube}`),
-            url2: taskModuleLink(appInfo.appId, constants.TaskModuleStrings.PowerAppTitle, constants.TaskModuleSizes.powerapp.height, constants.TaskModuleSizes.powerapp.width, `${appRoot()}/${constants.TaskModuleIds.PowerApp}`),
-            url3: taskModuleLink(appInfo.appId, constants.TaskModuleStrings.CustomFormTitle, constants.TaskModuleSizes.customform.height, constants.TaskModuleSizes.customform.width, `${appRoot()}/${constants.TaskModuleIds.CustomForm}`),
-            url4: taskModuleLink(appInfo.appId, constants.TaskModuleStrings.AdaptiveCardTitle, constants.TaskModuleSizes.adaptivecard.height, constants.TaskModuleSizes.adaptivecard.width, null, cardTemplates.adaptiveCard),
-            url5: taskModuleLink(appInfo.appId, constants.TaskModuleStrings.AdaptiveCardTitle, constants.TaskModuleSizes.adaptivecard.height, constants.TaskModuleSizes.adaptivecard.width, null, cardTemplates.adaptiveCard),
+            url1: taskModuleLink(appInfo.appId, constants.TaskModuleStrings.CustomFormTipTapTitle, constants.TaskModuleSizes.customformtiptap.height, constants.TaskModuleSizes.customformtiptap.width, `${appRoot()}/${constants.TaskModuleIds.CustomFormTipTap}`)
         };
 
         let cardData: any = {
-            title: "Task Module - Bot Framework",
-            subTitleDL: "Deep Links",
-            instructionsDL: "Click on the buttons below below to open a task module via deep link.",
-            subTitleTF: "Invoke: task/fetch",
-            instructionsTF: "Click on the buttons below below to open a task module via task/fetch.",
-            linkbutton1: constants.TaskModuleStrings.YouTubeName,
+            title: "Q&A Bot",
+            subTitle: "Ask a Question",
+            instructions: "Click the button below to ask a question using our rich text editor.",
+            linkbutton1: constants.TaskModuleStrings.CustomFormTipTapName,
             url1: taskModuleUrls.url1,
-            linkbutton2: constants.TaskModuleStrings.PowerAppName,
-            url2: taskModuleUrls.url2,
-            linkbutton3: constants.TaskModuleStrings.CustomFormName,
-            url3: taskModuleUrls.url3,
-            linkbutton4: constants.TaskModuleStrings.AdaptiveCardSingleName,
-            url4: taskModuleUrls.url4,
-            linkbutton5: constants.TaskModuleStrings.AdaptiveCardSequenceName,
-            url5: taskModuleUrls.url5,
-            fetchButtonId1: `${constants.TaskModuleIds.YouTube}`,
-            fetchButtonId2: `${constants.TaskModuleIds.PowerApp}`,
-            fetchButtonId3: `${constants.TaskModuleIds.CustomForm}`,
-            fetchButtonId4: `${constants.TaskModuleIds.AdaptiveCard1}`,
-            fetchButtonId5: `${constants.TaskModuleIds.AdaptiveCard2}`,
-            fetchButtonTitle1: `${constants.TaskModuleStrings.YouTubeName}`,
-            fetchButtonTitle2: `${constants.TaskModuleStrings.PowerAppName}`,
-            fetchButtonTitle3: `${constants.TaskModuleStrings.CustomFormName}`,
-            fetchButtonTitle4: `${constants.TaskModuleStrings.AdaptiveCardSingleName}`,
-            fetchButtonTitle5: `${constants.TaskModuleStrings.AdaptiveCardSequenceName}`,
+            fetchButtonId1: constants.TaskModuleIds.CustomFormTipTap,
+            fetchButtonTitle1: constants.TaskModuleStrings.CustomFormTipTapName
         };
 
         if (text === constants.DialogId.BFCard) {
-            // The user has typed "bfcard" - send two cards, one illustrating deep link buttons, and one with task/fetch
             session.send(new builder.Message(session).addAttachment(
-                renderCard(cardTemplates.bfThumbnailDeepLink, cardData),
-            ));
-            session.send(new builder.Message(session).addAttachment(
-                renderCard(cardTemplates.bfThumbnailTaskFetch, cardData),
+                renderCard(cardTemplates.questionSubmitted, cardData),
             ));
         }
         session.endDialog();
