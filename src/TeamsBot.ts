@@ -21,702 +21,429 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import * as builder from "botbuilder";
-import * as msteams from "botbuilder-teams";
-import * as utils from "./utils";
-import * as logger from "winston";
+import {
+    TeamsActivityHandler,
+    TurnContext,
+    CardFactory,
+    TeamsInfo,
+    BotFrameworkAdapter,
+    BotHandler,
+    ConversationState,
+    UserState
+} from "botbuilder";
+import logger from './utils/Logger';
 
 import { RootDialog } from "./dialogs/RootDialog";
 import { fetchTemplates, cardTemplates } from "./dialogs/CardTemplates";
 import { renderACAttachment } from "./utils";
 import { questionsService } from "./services/questions-service";
 import { TaskModuleSizes } from "./constants";
+import { QuestionsService } from './services/questions';
+import { QABot } from './bot/QABot';
+import { QuestionDialog } from './dialogs/QuestionDialog';
 
-export class TeamsBot extends builder.UniversalBot {
+export class TeamsBot extends TeamsActivityHandler {
+    private qaBot: QABot;
+    private questionsService: QuestionsService;
 
     constructor(
-        public _connector: builder.IConnector,
-        public _botSettings: any,
-    )
-    {
-        super(_connector, _botSettings);
-        this.set("persistentConversationData", true);
-
-        // Handle generic invokes
-        let teamsConnector = this._connector as msteams.TeamsChatConnector;
-        teamsConnector.onInvoke(async (event, cb) => {
-            try {
-                logger.info("Received invoke event", {
-                    name: (event as any).name,
-                    value: (event as any).value
-                });
-                await this.onInvoke(event, cb);
-            } catch (e) {
-                logger.error("Invoke handler failed", {
-                    error: e,
-                    event: event
-                });
-                cb(e, null, 500);
-            }
-        });
-
-        // Register dialogs
-        new RootDialog().register(this);
+        private adapter: BotFrameworkAdapter,
+        private conversationState: ConversationState,
+        private userState: UserState
+    ) {
+        super();
+        const questionDialog = new QuestionDialog(logger);
+        this.qaBot = new QABot(this.conversationState, this.userState, questionDialog, logger);
+        this.questionsService = new QuestionsService();
     }
 
-    // Handle incoming invoke
-    private async onInvoke(event: builder.IEvent, cb: (err: Error, body: any, status?: number) => void): Promise<void> {
-        logger.info("Processing invoke", {
-            context: utils.getContext(event)
+    onTurn(handler: BotHandler): this {
+        return super.onTurn(handler);
+    }
+
+    protected async handleTeamsTaskModuleFetch(context: TurnContext, taskModuleRequest: any): Promise<any> {
+        try {
+            logger.info("Processing task/fetch", {
+                taskModule: taskModuleRequest.data.taskModule,
+                questionId: taskModuleRequest.data.questionId
+            });
+
+            const taskModule = taskModuleRequest.data.taskModule.toLowerCase();
+
+            if (taskModule === "viewquestion") {
+                const questionId = taskModuleRequest.data.questionId;
+                return {
+                    task: {
+                        type: "continue",
+                        value: {
+                            title: "Question Details",
+                            height: 1020,
+                            width: 1632,
+                            url: `${process.env.BASE_URI}/question/${questionId}`,
+                            fallbackUrl: `${process.env.BASE_URI}/question/${questionId}`
+                        }
+                    }
+                };
+            }
+
+            if (taskModule === "askquestion") {
+                return {
+                    task: {
+                        type: "continue",
+                        value: {
+                            title: "Ask a Question",
+                            height: 1020,
+                            width: 1632,
+                            url: `${process.env.BASE_URI}/customform-tiptap`,
+                            fallbackUrl: `${process.env.BASE_URI}/customform-tiptap`
+                        }
+                    }
+                };
+            }
+
+            if (fetchTemplates[taskModule]) {
+                return {
+                    task: {
+                        type: "continue",
+                        value: {
+                            title: fetchTemplates[taskModule].title,
+                            height: fetchTemplates[taskModule].height,
+                            width: fetchTemplates[taskModule].width,
+                            url: fetchTemplates[taskModule].url,
+                            fallbackUrl: fetchTemplates[taskModule].fallbackUrl,
+                            completionBotId: process.env.MICROSOFT_APP_ID
+                        }
+                    }
+                };
+            }
+
+            throw new Error(`Task module template for ${taskModule} not found.`);
+        } catch (error) {
+            logger.error("Error in task/fetch", { error });
+            throw error;
+        }
+    }
+
+    protected async handleTeamsTaskModuleSubmit(context: TurnContext, taskModuleRequest: any): Promise<any> {
+        try {
+            logger.info("Processing task/submit", {
+                data: taskModuleRequest.data
+            });
+
+            if (!taskModuleRequest.data) {
+                return null;
+            }
+
+            if (taskModuleRequest.data.type === "answer_accepted" || 
+                taskModuleRequest.data.type === "answer_submitted") {
+                await this.handleAnswerResponse(context, taskModuleRequest);
+                return null;
+            }
+
+            if (taskModuleRequest.data.title && taskModuleRequest.data.text && taskModuleRequest.data.userId) {
+                await this.handleQuestionSubmission(context, taskModuleRequest);
+                return null;
+            }
+
+            // Handle other task module responses
+            switch (taskModuleRequest.data.taskResponse) {
+                case "message":
+                    await context.sendActivity("**task/submit results from the Adaptive card:**\n```" + JSON.stringify(taskModuleRequest) + "```");
+                    return { type: "message" };
+                case "continue":
+                    const fetchResponse = fetchTemplates.submitResponse;
+                    fetchResponse.task.value.card = renderACAttachment(cardTemplates.acSubmitResponse, { results: JSON.stringify(taskModuleRequest.data) });
+                    return fetchResponse;
+                case "final":
+                    return { type: "final" };
+                default:
+                    logger.info("Processing HTML task module response", {
+                        data: taskModuleRequest.data
+                    });
+                    await context.sendActivity("**task/submit results from HTML or deep link:**\n\n```" + JSON.stringify(taskModuleRequest.data) + "```");
+                    return fetchTemplates.submitMessageResponse;
+            }
+        } catch (error) {
+            logger.error("Error in task/submit", { error });
+            throw error;
+        }
+    }
+
+    private async handleAnswerResponse(context: TurnContext, taskModuleRequest: any): Promise<void> {
+        try {
+            // Get fresh data from the database
+            const questionId = taskModuleRequest.data.data.question.id;
+            const updatedQuestion = await this.questionsService.getQuestion(questionId);
+            
+            if (!updatedQuestion) {
+                throw new Error('Question not found');
+            }
+
+            const card = CardFactory.adaptiveCard({
+                type: "AdaptiveCard",
+                version: "1.2",
+                $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+                msteams: {
+                    width: "Full"
+                },
+                style: "default",
+                body: [
+                    {
+                        type: "Container",
+                        style: "emphasis",
+                        items: [
+                            {
+                                type: "TextBlock",
+                                text: "✨ Question",
+                                size: "Small",
+                                weight: "Bolder",
+                                color: "Accent",
+                                spacing: "Small"
+                            },
+                            {
+                                type: "TextBlock",
+                                text: updatedQuestion.title,
+                                wrap: true,
+                                weight: "Bolder",
+                                size: "ExtraLarge",
+                                color: "Default",
+                                spacing: "Small"
+                            }
+                        ],
+                        spacing: "Large",
+                        bleed: true
+                    },
+                    {
+                        type: "Container",
+                        spacing: "Medium",
+                        items: [
+                            {
+                                type: "TextBlock",
+                                text: `Posted by ${updatedQuestion.profile.firstName} ${updatedQuestion.profile.lastName} • ${new Date(updatedQuestion.createdAt).toLocaleString()}`,
+                                wrap: true,
+                                size: "Small",
+                                isSubtle: true,
+                                spacing: "Small"
+                            }
+                        ]
+                    },
+                    {
+                        type: "Container",
+                        spacing: "Large",
+                        items: [
+                            {
+                                type: "TextBlock",
+                                text: updatedQuestion.body.replace(/<[^>]*>/g, ''),
+                                wrap: true,
+                                size: "Medium",
+                                spacing: "Medium"
+                            }
+                        ]
+                    },
+                    {
+                        type: "Container",
+                        spacing: "ExtraLarge",
+                        separator: true,
+                        items: [
+                            {
+                                type: "TextBlock",
+                                text: `💬 Answers (${updatedQuestion.answers.length})`,
+                                wrap: true,
+                                weight: "Bolder",
+                                size: "Medium",
+                                color: "Accent",
+                                spacing: "Medium"
+                            }
+                        ]
+                    },
+                    ...updatedQuestion.answers.map((answer, index) => ({
+                        type: "Container",
+                        spacing: index === 0 ? "Medium" : "Large",
+                        style: answer.accepted ? "emphasis" : "default",
+                        items: [
+                            {
+                                type: "Container",
+                                spacing: "None",
+                                items: [
+                                    {
+                                        type: "TextBlock",
+                                        text: answer.accepted ? "✅ Accepted Answer" : `Answer ${index + 1}`,
+                                        wrap: true,
+                                        size: "Small",
+                                        weight: "Bolder",
+                                        color: answer.accepted ? "Good" : "Accent",
+                                        spacing: "Small"
+                                    },
+                                    {
+                                        type: "TextBlock",
+                                        text: `${answer.profile.firstName} ${answer.profile.lastName} • ${new Date(answer.createdAt).toLocaleString()}`,
+                                        wrap: true,
+                                        size: "Small",
+                                        isSubtle: true,
+                                        spacing: "Small"
+                                    }
+                                ]
+                            },
+                            {
+                                type: "TextBlock",
+                                text: answer.body.replace(/<[^>]*>/g, ''),
+                                wrap: true,
+                                size: "Medium",
+                                spacing: "Medium"
+                            }
+                        ],
+                        separator: true
+                    }))
+                ],
+                actions: [
+                    {
+                        type: "Action.Submit",
+                        title: "View Full Question & Answers",
+                        style: "positive",
+                        data: {
+                            msteams: {
+                                type: "task/fetch"
+                            },
+                            taskModule: "viewQuestion",
+                            questionId: updatedQuestion.id
+                        }
+                    }
+                ]
+            });
+
+            await context.sendActivity({ attachments: [card] });
+        } catch (error) {
+            logger.error('Error handling answer response:', error);
+            throw error;
+        }
+    }
+
+    private async handleQuestionSubmission(context: TurnContext, taskModuleRequest: any): Promise<void> {
+        const formattedQuestion = {
+            ...taskModuleRequest.data,
+            text: taskModuleRequest.data.text,
+            rawHtml: taskModuleRequest.data.text
+        };
+        
+        const savedQuestion = await questionsService.addQuestion(
+            formattedQuestion.title,
+            formattedQuestion.text,
+            formattedQuestion.userName
+        );
+        
+        function convertHtmlToMarkdown(html: string): { text: string; images: string[] } {
+            if (!html) return { text: '', images: [] };
+            
+            const images: string[] = [];
+            const textWithoutImages = html.replace(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi, (match, src) => {
+                images.push(src);
+                return '';
+            });
+            
+            let text = textWithoutImages
+                .replace(/<ul>([\s\S]*?)<\/ul>/gi, (match, content) => {
+                    return content.split('</li>')
+                        .filter(item => item.trim())
+                        .map(item => {
+                            item = item.replace(/<li>/gi, '').trim();
+                            return `• ${item}\r`;
+                        })
+                        .join('');
+                })
+                .replace(/<ol>([\s\S]*?)<\/ol>/gi, (match, content) => {
+                    let index = 1;
+                    return content.split('</li>')
+                        .filter(item => item.trim())
+                        .map(item => {
+                            item = item.replace(/<li>/gi, '').trim();
+                            return `${index++}. ${item}\r`;
+                        })
+                        .join('');
+                })
+                .replace(/<p>([\s\S]*?)<\/p>/gi, '$1\r\r')
+                .replace(/<br\s*\/?>/gi, '\r')
+                .replace(/<(strong|b)>([\s\S]*?)<\/(strong|b)>/gi, '**$2**')
+                .replace(/<(em|i)>([\s\S]*?)<\/(em|i)>/gi, '_$2_')
+                .replace(/<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)')
+                .replace(/<[^>]+>/g, '')
+                .replace(/\r{3,}/g, '\r\r')
+                .replace(/\s+$/gm, '')
+                .trim();
+
+            return { text, images };
+        }
+
+        const { text: convertedText, images } = convertHtmlToMarkdown(savedQuestion.body);
+
+        const userName = `${savedQuestion.profile.firstName} ${savedQuestion.profile.lastName}`;
+
+        const card = CardFactory.adaptiveCard({
+            type: "AdaptiveCard",
+            version: "1.2",
+            $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
+            msteams: {
+                width: "Full"
+            },
+            style: "default",
+            body: [
+                {
+                    type: "Container",
+                    style: "emphasis",
+                    items: [
+                        {
+                            type: "TextBlock",
+                            text: savedQuestion.title,
+                            wrap: true,
+                            weight: "Bolder",
+                            size: "Large",
+                            color: "Default"
+                        }
+                    ],
+                    spacing: "Medium",
+                    bleed: true
+                },
+                {
+                    type: "Container",
+                    spacing: "Medium",
+                    items: [
+                        {
+                            type: "TextBlock",
+                            text: convertedText.length > 150 ? convertedText.substring(0, 150) + "..." : convertedText,
+                            wrap: true,
+                            size: "Medium"
+                        }
+                    ]
+                },
+                {
+                    type: "Container",
+                    spacing: "Small",
+                    items: [
+                        {
+                            type: "TextBlock",
+                            text: `Posted by ${userName} • ${new Date(savedQuestion.createdAt).toLocaleString()}`,
+                            wrap: true,
+                            size: "Small",
+                            isSubtle: true
+                        }
+                    ]
+                }
+            ],
+            actions: [
+                {
+                    type: "Action.Submit",
+                    title: "View Full Question",
+                    style: "positive",
+                    data: {
+                        msteams: {
+                            type: "task/fetch"
+                        },
+                        taskModule: "viewQuestion",
+                        questionId: savedQuestion.id
+                    }
+                }
+            ]
         });
-
-        let session = await utils.loadSessionAsync(this, event);
-        if (!session) {
-            logger.error("Failed to load session for invoke");
-            cb(new Error("Failed to load session"), null, 500);
-            return;
-        }
-
-        let invokeType = (event as any).name;
-        let invokeValue = (event as any).value;
-
-        logger.info("Invoke details", {
-            type: invokeType,
-            value: invokeValue
-        });
-
-        if (invokeType === undefined) {
-            invokeType = null;
-        }
-
-        switch (invokeType) {
-            case "task/fetch": {
-                try {
-                    let taskModule = invokeValue.data.taskModule.toLowerCase();
-                    logger.info("Processing task/fetch", {
-                        taskModule: taskModule,
-                        questionId: invokeValue.data.questionId
-                    });
-
-                    if (taskModule === "viewquestion") {
-                        // Create a template for viewing question details
-                        const questionId = invokeValue.data.questionId;
-                        const response = {
-                            task: {
-                                type: "continue",
-                                value: {
-                                    title: "Question Details",
-                                    height: 1020,
-                                    width: 1632,
-                                    url: `${process.env.BASE_URI}/question/${questionId}`,
-                                    fallbackUrl: `${process.env.BASE_URI}/question/${questionId}`
-                                }
-                            }
-                        };
-                        logger.info("Sending view question response", { response });
-                        cb(null, response, 200);
-                        return;
-                    }
-
-                    if (taskModule === "askquestion") {
-                        // Create a template for the TipTap question form
-                        const response = {
-                            task: {
-                                type: "continue",
-                                value: {
-                                    title: "Ask a Question",
-                                    height: 1020,
-                                    width: 1632,
-                                    url: `${process.env.BASE_URI}/customform-tiptap`,
-                                    fallbackUrl: `${process.env.BASE_URI}/customform-tiptap`
-                                }
-                            }
-                        };
-                        logger.info("Sending ask question response", { response });
-                        cb(null, response, 200);
-                        return;
-                    }
-
-                    if (fetchTemplates[taskModule] !== undefined) {
-                        const response = {
-                            task: {
-                                type: "continue",
-                                value: {
-                                    title: fetchTemplates[taskModule].title,
-                                    height: fetchTemplates[taskModule].height,
-                                    width: fetchTemplates[taskModule].width,
-                                    url: fetchTemplates[taskModule].url,
-                                    fallbackUrl: fetchTemplates[taskModule].fallbackUrl,
-                                    completionBotId: process.env.MICROSOFT_APP_ID
-                                }
-                            }
-                        };
-                        logger.info("Sending task/fetch response", { response });
-                        cb(null, response, 200);
-                    } else {
-                        let error = `Error: task module template for ${(invokeValue.taskModule === undefined ? "<undefined>" : invokeValue.taskModule)} not found.`;
-                        logger.error(error);
-                        cb(new Error(error), null, 404);
-                    }
-                } catch (error) {
-                    logger.error("Error in task/fetch", {
-                        error: error,
-                        invokeValue: invokeValue
-                    });
-                    cb(error, null, 500);
-                }
-                break;
-            }
-            case "task/submit": {
-                try {
-                    logger.info("Processing task/submit", {
-                        data: invokeValue.data
-                    });
-
-                    if (invokeValue.data !== undefined) {
-                        // Handle answer acceptance
-                        if (invokeValue.data.type === "answer_accepted") {
-                            try {
-                                const questionData = invokeValue.data.data.question;
-                                const answers = invokeValue.data.data.answers;
-
-                                // Create and send the updated card
-                                const card = {
-                                    contentType: "application/vnd.microsoft.card.adaptive",
-                                    content: {
-                                        type: "AdaptiveCard",
-                                        version: "1.2",
-                                        $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
-                                        msteams: {
-                                            width: "Full"
-                                        },
-                                        style: "default",
-                                        body: [
-                                            {
-                                                type: "Container",
-                                                style: "emphasis",
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: "✨ Question",
-                                                        size: "Small",
-                                                        weight: "Bolder",
-                                                        color: "Accent",
-                                                        spacing: "Small"
-                                                    },
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: questionData.title,
-                                                        wrap: true,
-                                                        weight: "Bolder",
-                                                        size: "ExtraLarge",
-                                                        color: "Default",
-                                                        spacing: "Small"
-                                                    }
-                                                ],
-                                                spacing: "Large",
-                                                bleed: true
-                                            },
-                                            {
-                                                type: "Container",
-                                                spacing: "Medium",
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: `Posted by ${questionData.userName} • ${new Date(questionData.timestamp).toLocaleString()}`,
-                                                        wrap: true,
-                                                        size: "Small",
-                                                        isSubtle: true,
-                                                        spacing: "Small"
-                                                    }
-                                                ],
-                                                style: "default"
-                                            },
-                                            {
-                                                type: "Container",
-                                                spacing: "Large",
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: questionData.text.replace(/<[^>]*>/g, ''),
-                                                        wrap: true,
-                                                        size: "Medium",
-                                                        spacing: "Medium"
-                                                    }
-                                                ],
-                                                style: "default"
-                                            },
-                                            {
-                                                type: "Container",
-                                                spacing: "ExtraLarge",
-                                                separator: true,
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: `💬 Answers (${answers.length})`,
-                                                        wrap: true,
-                                                        weight: "Bolder",
-                                                        size: "Medium",
-                                                        color: "Accent",
-                                                        spacing: "Medium"
-                                                    }
-                                                ]
-                                            },
-                                            ...answers.map((answer, index) => ({
-                                                type: "Container",
-                                                spacing: index === 0 ? "Medium" : "Large",
-                                                style: answer.isAccepted ? "emphasis" : "default",
-                                                items: [
-                                                    {
-                                                        type: "Container",
-                                                        spacing: "None",
-                                                        items: [
-                                                            {
-                                                                type: "TextBlock",
-                                                                text: answer.isAccepted ? "✅ Accepted Answer" : `Answer ${index + 1}`,
-                                                                wrap: true,
-                                                                size: "Small",
-                                                                weight: "Bolder",
-                                                                color: answer.isAccepted ? "Good" : "Accent",
-                                                                spacing: "Small"
-                                                            },
-                                                            {
-                                                                type: "TextBlock",
-                                                                text: `${answer.userName} • ${new Date(answer.timestamp).toLocaleString()}`,
-                                                                wrap: true,
-                                                                size: "Small",
-                                                                isSubtle: true,
-                                                                spacing: "Small"
-                                                            }
-                                                        ]
-                                                    },
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: answer.text.replace(/<[^>]*>/g, ''),
-                                                        wrap: true,
-                                                        size: "Medium",
-                                                        spacing: "Medium"
-                                                    }
-                                                ],
-                                                separator: true
-                                            }))
-                                        ],
-                                        actions: [
-                                            {
-                                                type: "Action.Submit",
-                                                title: "View Full Question & Answers",
-                                                style: "positive",
-                                                data: {
-                                                    msteams: {
-                                                        type: "task/fetch"
-                                                    },
-                                                    taskModule: "viewQuestion",
-                                                    questionId: questionData.id
-                                                }
-                                            }
-                                        ]
-                                    }
-                                };
-
-                                // Send the updated card
-                                const message = new builder.Message(session)
-                                    .addAttachment(card);
-                                session.send(message);
-
-                                // Close the task module
-                                cb(null, null, 200);
-                                return;
-                            } catch (error) {
-                                logger.error("Error handling answer acceptance", { error });
-                                cb(error, null, 500);
-                                return;
-                            }
-                        }
-
-                        // Handle answer submission
-                        if (invokeValue.data.type === "answer_submitted") {
-                            try {
-                                const questionData = invokeValue.data.data.question;
-                                const answers = invokeValue.data.data.answers;
-
-                                // Create and send the updated card
-                                const card = {
-                                    contentType: "application/vnd.microsoft.card.adaptive",
-                                    content: {
-                                        type: "AdaptiveCard",
-                                        version: "1.2",
-                                        $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
-                                        msteams: {
-                                            width: "Full"
-                                        },
-                                        style: "default",
-                                        body: [
-                                            {
-                                                type: "Container",
-                                                style: "emphasis",
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: "✨ Question",
-                                                        size: "Small",
-                                                        weight: "Bolder",
-                                                        color: "Accent",
-                                                        spacing: "Small"
-                                                    },
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: questionData.title,
-                                                        wrap: true,
-                                                        weight: "Bolder",
-                                                        size: "ExtraLarge",
-                                                        color: "Default",
-                                                        spacing: "Small"
-                                                    }
-                                                ],
-                                                spacing: "Large",
-                                                bleed: true
-                                            },
-                                            {
-                                                type: "Container",
-                                                spacing: "Medium",
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: `Posted by ${questionData.userName} • ${new Date(questionData.timestamp).toLocaleString()}`,
-                                                        wrap: true,
-                                                        size: "Small",
-                                                        isSubtle: true,
-                                                        spacing: "Small"
-                                                    }
-                                                ],
-                                                style: "default"
-                                            },
-                                            {
-                                                type: "Container",
-                                                spacing: "Large",
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: questionData.text.replace(/<[^>]*>/g, ''),
-                                                        wrap: true,
-                                                        size: "Medium",
-                                                        spacing: "Medium"
-                                                    }
-                                                ],
-                                                style: "default"
-                                            },
-                                            {
-                                                type: "Container",
-                                                spacing: "ExtraLarge",
-                                                separator: true,
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: `💬 Answers (${answers.length})`,
-                                                        wrap: true,
-                                                        weight: "Bolder",
-                                                        size: "Medium",
-                                                        color: "Accent",
-                                                        spacing: "Medium"
-                                                    }
-                                                ]
-                                            },
-                                            ...answers.map((answer: any, index: number) => ({
-                                                type: "Container",
-                                                spacing: index === 0 ? "Medium" : "Large",
-                                                style: answer.isAccepted ? "emphasis" : "default",
-                                                items: [
-                                                    {
-                                                        type: "Container",
-                                                        spacing: "None",
-                                                        items: [
-                                                            {
-                                                                type: "TextBlock",
-                                                                text: answer.isAccepted ? "✅ Accepted Answer" : `Answer ${index + 1}`,
-                                                                wrap: true,
-                                                                size: "Small",
-                                                                weight: "Bolder",
-                                                                color: answer.isAccepted ? "Good" : "Accent",
-                                                                spacing: "Small"
-                                                            },
-                                                            {
-                                                                type: "TextBlock",
-                                                                text: `${answer.userName} • ${new Date(answer.timestamp).toLocaleString()}`,
-                                                                wrap: true,
-                                                                size: "Small",
-                                                                isSubtle: true,
-                                                                spacing: "Small"
-                                                            }
-                                                        ]
-                                                    },
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: answer.text.replace(/<[^>]*>/g, ''),
-                                                        wrap: true,
-                                                        size: "Medium",
-                                                        spacing: "Medium"
-                                                    }
-                                                ],
-                                                separator: true
-                                            }))
-                                        ],
-                                        actions: [
-                                            {
-                                                type: "Action.Submit",
-                                                title: "View Full Question & Answers",
-                                                style: "positive",
-                                                data: {
-                                                    msteams: {
-                                                        type: "task/fetch"
-                                                    },
-                                                    taskModule: "viewQuestion",
-                                                    questionId: questionData.id
-                                                }
-                                            }
-                                        ]
-                                    }
-                                };
-
-                                // Send the updated card
-                                const message = new builder.Message(session)
-                                    .addAttachment(card);
-                                session.send(message);
-
-                                // Close the task module for answers
-                                cb(null, null, 200);
-                                return;
-                            } catch (error) {
-                                logger.error("Error handling answer submission", { error });
-                                cb(error, null, 500);
-                                return;
-                            }
-                        }
-
-                        // Handle question submission
-                        if (invokeValue.data.title && invokeValue.data.text && invokeValue.data.userId) {
-                            try {
-                                // Format the text with markdown
-                                const formattedQuestion = {
-                                    ...invokeValue.data,
-                                    text: invokeValue.data.text, // Remove markdown formatting since we're using rich text
-                                    rawHtml: invokeValue.data.text // Store the raw HTML for future reference
-                                };
-                                
-                                // Save the question
-                                const savedQuestion = await questionsService.addQuestion(formattedQuestion);
-                                
-                                // Function to convert HTML to markdown-style formatting
-                                function convertHtmlToMarkdown(html: string): { text: string; images: string[] } {
-                                    if (!html) return { text: '', images: [] };
-                                    
-                                    // Extract images and store their information
-                                    const images: string[] = [];
-                                    const textWithoutImages = html.replace(/<img[^>]*src=["']([^"']*)["'][^>]*>/gi, (match, src) => {
-                                        images.push(src);
-                                        return ''; // Remove image placeholder completely
-                                    });
-                                    
-                                    // Convert other HTML to markdown
-                                    let text = textWithoutImages
-                                        // Handle unordered lists
-                                        .replace(/<ul>([\s\S]*?)<\/ul>/gi, (match, content) => {
-                                            return content.split('</li>')
-                                                .filter(item => item.trim())
-                                                .map(item => {
-                                                    item = item.replace(/<li>/gi, '').trim();
-                                                    return `• ${item}\r`;
-                                                })
-                                                .join('');
-                                        })
-                                        // Handle ordered lists
-                                        .replace(/<ol>([\s\S]*?)<\/ol>/gi, (match, content) => {
-                                            let index = 1;
-                                            return content.split('</li>')
-                                                .filter(item => item.trim())
-                                                .map(item => {
-                                                    item = item.replace(/<li>/gi, '').trim();
-                                                    return `${index++}. ${item}\r`;
-                                                })
-                                                .join('');
-                                        })
-                                        // Handle paragraphs
-                                        .replace(/<p>([\s\S]*?)<\/p>/gi, '$1\r\r')
-                                        // Handle line breaks
-                                        .replace(/<br\s*\/?>/gi, '\r')
-                                        // Handle bold text
-                                        .replace(/<(strong|b)>([\s\S]*?)<\/(strong|b)>/gi, '**$2**')
-                                        // Handle italic text
-                                        .replace(/<(em|i)>([\s\S]*?)<\/(em|i)>/gi, '_$2_')
-                                        // Handle links
-                                        .replace(/<a[^>]*href=["']([^"']*)["'][^>]*>([\s\S]*?)<\/a>/gi, '[$2]($1)')
-                                        // Remove any remaining HTML tags
-                                        .replace(/<[^>]+>/g, '')
-                                        // Fix spacing issues
-                                        .replace(/\r{3,}/g, '\r\r')
-                                        .replace(/\s+$/gm, '')
-                                        .trim();
-
-                                    return { text, images };
-                                }
-
-                                // Create and send the confirmation card
-                                const { text: convertedText, images } = convertHtmlToMarkdown(savedQuestion.text);
-
-                                const card = {
-                                    contentType: "application/vnd.microsoft.card.adaptive",
-                                    content: {
-                                        type: "AdaptiveCard",
-                                        version: "1.2",
-                                        $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
-                                        msteams: {
-                                            width: "Full"
-                                        },
-                                        style: "default",
-                                        body: [
-                                            {
-                                                type: "Container",
-                                                style: "emphasis",
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: savedQuestion.title,
-                                                        wrap: true,
-                                                        weight: "Bolder",
-                                                        size: "Large",
-                                                        color: "Default"
-                                                    }
-                                                ],
-                                                spacing: "Medium",
-                                                bleed: true
-                                            },
-                                            {
-                                                type: "Container",
-                                                spacing: "Medium",
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: convertedText.length > 150 ? convertedText.substring(0, 150) + "..." : convertedText,
-                                                        wrap: true,
-                                                        size: "Medium"
-                                                    }
-                                                ]
-                                            },
-                                            {
-                                                type: "Container",
-                                                spacing: "Small",
-                                                items: [
-                                                    {
-                                                        type: "TextBlock",
-                                                        text: `Asked by ${savedQuestion.userName} • ${new Date(savedQuestion.timestamp).toLocaleString()}`,
-                                                        wrap: true,
-                                                        size: "Small",
-                                                        isSubtle: true
-                                                    }
-                                                ]
-                                            }
-                                        ],
-                                        actions: [
-                                            {
-                                                type: "Action.Submit",
-                                                title: "View Full Question",
-                                                style: "positive",
-                                                data: {
-                                                    msteams: {
-                                                        type: "task/fetch"
-                                                    },
-                                                    taskModule: "viewQuestion",
-                                                    questionId: savedQuestion.id
-                                                }
-                                            }
-                                        ]
-                                    }
-                                };
-                                
-                                // Send the card to the conversation
-                                const message = new builder.Message(session)
-                                    .addAttachment(card);
-                                session.send(message);
-                                
-                                // Close the task module for answers
-                                cb(null, null, 200);
-                                return;
-                            } catch (error) {
-                                logger.error("Error saving question", { error });
-                                cb(error, null, 500);
-                                return;
-                            }
-                        }
-
-                        // Handle other task module responses
-                        switch (invokeValue.data.taskResponse) {
-                            case "message":
-                                session.send("**task/submit results from the Adaptive card:**\n```" + JSON.stringify(invokeValue) + "```");
-                                cb(null, { type: "message" }, 200);
-                                break;
-                            case "continue":
-                                let fetchResponse = fetchTemplates.submitResponse;
-                                fetchResponse.task.value.card = renderACAttachment(cardTemplates.acSubmitResponse, { results: JSON.stringify(invokeValue.data) });
-                                logger.info("Sending continue response", {
-                                    response: fetchResponse
-                                });
-                                cb(null, fetchResponse, 200);
-                                break;
-                            case "final":
-                                cb(null, { type: "final" }, 200);
-                                break;
-                            default:
-                                logger.info("Processing HTML task module response", {
-                                    data: invokeValue.data
-                                });
-                                cb(null, fetchTemplates.submitMessageResponse, 200);
-                                session.send("**task/submit results from HTML or deep link:**\n\n```" + JSON.stringify(invokeValue.data) + "```");
-                        }
-                    } else {
-                        logger.warn("Received task/submit with undefined data");
-                        cb(null, null, 200);
-                    }
-                } catch (error) {
-                    logger.error("Error in task/submit", {
-                        error: error,
-                        invokeValue: invokeValue
-                    });
-                    cb(error, null, 500);
-                }
-                break;
-            }
-            // Invokes don't participate in middleware
-            // If the message is not task/*, simulate a normal message and route it, but remember the original invoke message
-            case null: {
-                try {
-                    let fakeMessage: any = {
-                        ...event,
-                        text: invokeValue.command + " " + JSON.stringify(invokeValue),
-                        originalInvoke: event,
-                    };
-
-                    logger.info("Processing non-task invoke as message", {
-                        message: fakeMessage
-                    });
-
-                    session.message = fakeMessage;
-                    session.dispatch(session.sessionState, session.message, () => {
-                        session.routeToActiveDialog();
-                    });
-                } catch (error) {
-                    logger.error("Error processing non-task invoke", {
-                        error: error,
-                        event: event
-                    });
-                    cb(error, null, 500);
-                }
-                break;
-            }
-            default: {
-                logger.warn("Unknown invoke type", {
-                    type: invokeType
-                });
-                cb(null, "", 200);
-            }
-        }
+        
+        await context.sendActivity({ attachments: [card] });
     }
 }

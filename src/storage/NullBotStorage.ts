@@ -21,18 +21,32 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import * as builder from "botbuilder";
+import { Storage, StoreItems } from "botbuilder";
+import { IBotExtendedStorage } from "./BotExtendedStorage";
 
-/** Replacable storage system used by UniversalBot. */
-export class NullBotStorage implements builder.IBotStorage {
-
-    // Reads in data from storage
-    public getData(context: builder.IBotStorageContext, callback: (err: Error, data: builder.IBotStorageData) => void): void {
-        callback(null, {});
+/** No-op storage system for testing. */
+export class NullBotStorage implements IBotExtendedStorage {
+    public async read(keys: string[]): Promise<StoreItems> {
+        return {};
     }
 
-    // Writes out data from storage
-    public saveData(context: builder.IBotStorageContext, data: builder.IBotStorageData, callback?: (err: Error) => void): void {
-        callback(null);
+    public async write(changes: StoreItems): Promise<void> {
+        // No-op
+    }
+
+    public async delete(keys: string[]): Promise<void> {
+        // No-op
+    }
+
+    public async getUserDataByAadObjectIdAsync(aadObjectId: string): Promise<any> {
+        return null;
+    }
+
+    public getAAdObjectId(userData: any): string {
+        return '';
+    }
+
+    public setAAdObjectId(userData: any, aadObjectId: string): void {
+        // No-op
     }
 }

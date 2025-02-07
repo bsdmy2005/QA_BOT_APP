@@ -21,43 +21,58 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import * as builder from "botbuilder";
+import {
+    ComponentDialog,
+    WaterfallDialog,
+    WaterfallStepContext
+} from 'botbuilder-dialogs';
+import { CardFactory } from 'botbuilder';
 import * as constants from "../constants";
 import * as utils from "../utils";
 import { cardTemplates, fetchTemplates, appRoot } from "./CardTemplates";
 import { taskModuleLink } from "../utils/DeepLinks";
 import { renderCard } from "../utils/CardUtils";
+import { Logger } from 'winston';
 
-// Dialog for handling Q&A functionality
-export class BotFrameworkCard extends builder.IntentDialog
-{
-    constructor(private dialogId: string) {
-        super({ recognizeMode: builder.RecognizeMode.onBegin });
+const BFCARD_DIALOG = 'BFCARD_DIALOG';
+const BFCARD_WATERFALL_DIALOG = 'BFCARD_WATERFALL_DIALOG';
+
+export class BotFrameworkCard extends ComponentDialog {
+    private logger: Logger;
+
+    constructor(dialogId: string, logger: Logger) {
+        super(dialogId);
+        
+        this.logger = logger;
+
+        // Add waterfall dialog
+        this.addDialog(new WaterfallDialog(BFCARD_WATERFALL_DIALOG, [
+            this.initialStep.bind(this),
+            this.finalStep.bind(this)
+        ]));
+
+        // Set the initial dialog to run
+        this.initialDialogId = BFCARD_WATERFALL_DIALOG;
     }
 
-    public register(bot: builder.UniversalBot, rootDialog: builder.IntentDialog): void {
-        bot.dialog(this.dialogId, this);
-
-        this.onBegin((session, args, next) => { this.onDialogBegin(session, args, next); });
-        this.onDefault((session) => { this.onMessageReceived(session); });
-    }
-
-    // Handle start of dialog
-    private async onDialogBegin(session: builder.Session, args: any, next: () => void): Promise<void> {
-        next();
-    }
-
-    // Handle message
-    private async onMessageReceived(session: builder.Session): Promise<void> {
+    private async initialStep(stepContext: WaterfallStepContext) {
+        this.logger.info('BotFrameworkCard dialog - Initial step');
+        
         // Message might contain @mentions which we would like to strip off in the response
-        let text = utils.getTextWithoutMentions(session.message);
+        let text = utils.getTextWithoutMentions(stepContext.context.activity);
 
         let appInfo = {
             appId: process.env.MICROSOFT_APP_ID,
         };
 
         let taskModuleUrls = {
-            url1: taskModuleLink(appInfo.appId, constants.TaskModuleStrings.CustomFormTipTapTitle, constants.TaskModuleSizes.customformtiptap.height, constants.TaskModuleSizes.customformtiptap.width, `${appRoot()}/${constants.TaskModuleIds.CustomFormTipTap}`)
+            url1: taskModuleLink(
+                appInfo.appId, 
+                constants.TaskModuleStrings.CustomFormTipTapTitle, 
+                constants.TaskModuleSizes.customformtiptap.height, 
+                constants.TaskModuleSizes.customformtiptap.width, 
+                `${appRoot()}/${constants.TaskModuleIds.CustomFormTipTap}`
+            )
         };
 
         let cardData: any = {
@@ -71,10 +86,16 @@ export class BotFrameworkCard extends builder.IntentDialog
         };
 
         if (text === constants.DialogId.BFCard) {
-            session.send(new builder.Message(session).addAttachment(
-                renderCard(cardTemplates.questionSubmitted, cardData),
-            ));
+            await stepContext.context.sendActivity({ 
+                attachments: [renderCard(cardTemplates.questionSubmitted, cardData)]
+            });
         }
-        session.endDialog();
+
+        return await stepContext.next();
+    }
+
+    private async finalStep(stepContext: WaterfallStepContext) {
+        this.logger.info('BotFrameworkCard dialog - Final step');
+        return await stepContext.endDialog();
     }
 }

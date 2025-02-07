@@ -21,34 +21,30 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-/* import { Logger, transports } from "winston";
+import { createLogger, format, transports } from 'winston';
 
-export const logger = new Logger({
-    transports: [
-        new transports.Console({
-                timestamp: () => { return new Date().toLocaleTimeString(); },
-                colorize: (process.env.MONOCHROME_CONSOLE) ? false : true,
-                level: "debug",
-        }),
-    ],
-}); */
+const logger = createLogger({
+  level: process.env.LOG_LEVEL || 'info',
+  format: format.combine(
+    format.timestamp(),
+    format.errors({ stack: true }),
+    format.splat(),
+    format.json()
+  ),
+  transports: [
+    new transports.Console({
+      format: format.combine(
+        format.colorize(),
+        format.printf(({ timestamp, level, message, ...meta }) => {
+          let logMessage = `${timestamp} ${level}: ${message}`;
+          if (Object.keys(meta).length) {
+            logMessage += ` ${JSON.stringify(meta)}`;
+          }
+          return logMessage;
+        })
+      )
+    })
+  ]
+});
 
-/* export class Logger extends winston.Logger {
-    constructor() {
-        super();
-        this.add(
-            winston.transports.Console,
-            {
-                timestamp: this.tsFormat,
-                colorize: (process.env.MONOCHROME_CONSOLE) ? false : true,
-                level: "debug",
-            },
-        );
-    }
-
-    private tsFormat(): string {
-        return new Date().toLocaleTimeString();
-    }
-}
-
-export const logger = new Logger(); */
+export default logger;

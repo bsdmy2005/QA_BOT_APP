@@ -21,66 +21,71 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import urlJoin = require("url-join");
-import * as builder from "botbuilder";
-import * as utils from ".";
+import urlJoin from "url-join";
+import {
+    Activity,
+    TurnContext,
+    TeamsInfo,
+    CardFactory,
+    MessageFactory,
+    ConversationReference,
+    ChannelInfo,
+    TeamDetails,
+    TeamsChannelData,
+    Entity,
+    ConversationAccount
+} from 'botbuilder';
 import axios, { AxiosRequestConfig } from 'axios';
-import * as logger from "winston";
-
-// Helpers for working with messages
+import { Logger } from 'winston';
 
 // Creates a new Message
-// Unlike the botbuilder constructor, this defaults the textFormat to "xml"
-// tslint:disable-next-line:typedef
-export function createMessage(session: builder.Session, text = "", textFormat = "xml"): builder.Message {
-    return new builder.Message(session)
-        .text(text)
-        .textFormat("xml");
+export function createMessage(context: TurnContext, text = "", textFormat = "xml"): Partial<Activity> {
+    return MessageFactory.text(text, text, textFormat);
 }
 
 // Get the channel id in the event
-export function getChannelId(event: builder.IEvent): string {
-    let sourceEvent = (event.sourceEvent !== undefined) ? event.sourceEvent : event;
-    if (sourceEvent && sourceEvent.channel) {
-        return sourceEvent.channel.id;
+export function getChannelId(activity: Partial<Activity>): string {
+    const channelData = activity.channelData as TeamsChannelData;
+    if (channelData && channelData.channel) {
+        return channelData.channel.id;
     }
-
     return "";
 }
 
 // Get the team id in the event
-export function getTeamId(event: builder.IEvent): string {
-    let sourceEvent = (event.sourceEvent !== undefined) ? event.sourceEvent : event;
-    if (sourceEvent && sourceEvent.team) {
-        return sourceEvent.team.id;
+export function getTeamId(activity: Partial<Activity>): string {
+    const channelData = activity.channelData as TeamsChannelData;
+    if (channelData && channelData.team) {
+        return channelData.team.id;
     }
     return "";
 }
 
 // Get the tenant id in the event
-export function getTenantId(event: builder.IEvent): string {
-    let sourceEvent = (event.sourceEvent !== undefined) ? event.sourceEvent : event;
-    if (sourceEvent && sourceEvent.tenant) {
-        return sourceEvent.tenant.id;
+export function getTenantId(activity: Partial<Activity>): string {
+    const channelData = activity.channelData as TeamsChannelData;
+    if (channelData && channelData.tenant) {
+        return channelData.tenant.id;
     }
     return "";
 }
 
 // Returns true if this is message sent to a channel
-export function isChannelMessage(event: builder.IEvent): boolean {
-    return !!getChannelId(event);
+export function isChannelMessage(activity: Partial<Activity>): boolean {
+    return !!getChannelId(activity);
 }
 
 // Returns true if this is message sent to a group (group chat or channel)
-export function isGroupMessage(event: builder.IEvent): boolean {
-    return event.address.conversation.isGroup || isChannelMessage(event);
+export function isGroupMessage(activity: Partial<Activity>): boolean {
+    const conversation = activity.conversation;
+    return conversation?.conversationType === 'channel' || isChannelMessage(activity);
 }
 
 // Strip all mentions from text
-export function getTextWithoutMentions(message: builder.IMessage): string {
-    let text = message.text;
-    if (message.entities) {
-        message.entities
+export function getTextWithoutMentions(activity: Partial<Activity>): string {
+    let text = activity.text || '';
+    if (activity.entities) {
+        activity.entities
             .filter(entity => entity.type === "mention")
             .forEach(entity => {
                 text = text.replace(entity.text, "");
@@ -91,262 +96,103 @@ export function getTextWithoutMentions(message: builder.IMessage): string {
 }
 
 // Get all user mentions
-export function getUserMentions(message: builder.IMessage): builder.IEntity[] {
-    let entities = message.entities || [];
-    let botMri = message.address.bot.id.toLowerCase();
-    return entities.filter(entity => (entity.type === "mention") && (entity.mentioned.id.toLowerCase() !== botMri));
+export function getUserMentions(activity: Partial<Activity>): Entity[] {
+    const entities = activity.entities || [];
+    const botId = activity.recipient?.id?.toLowerCase();
+    return entities.filter(entity => 
+        entity.type === "mention" && 
+        entity.mentioned?.id?.toLowerCase() !== botId
+    );
 }
 
 // Create a mention entity for the user that sent this message
-export function createUserMention(message: builder.IMessage): builder.IEntity {
-    let user = message.address.user;
-    let text = "<at>" + user.name + "</at>";
-    let entity = {
+export function createUserMention(activity: Partial<Activity>): Entity {
+    const user = activity.from;
+    const text = `<at>${user?.name}</at>`;
+    return {
         type: "mention",
-        mentioned: user,
-        entity: text,
-        text: text,
+        mentioned: {
+            id: user?.id || '',
+            name: user?.name || '',
+            aadObjectId: (user as any)?.aadObjectId
+        },
+        text: text
     };
-    return entity;
 }
 
-// Gets the members of the given conversation.
-// Parameters:
-//      chatConnector: Chat connector instance.
-//      address: Chat connector address. "serviceUrl" property is required.
-//      conversationId: [optional] Conversation whose members are to be retrieved, if not specified, the id is taken from address.conversation.
-// Returns: A list of conversation members.
-export async function getConversationMembers(chatConnector: builder.ChatConnector, address: builder.IChatConnectorAddress, conversationId?: string): Promise<any[]> {
-    // Build request
-    conversationId = conversationId || address.conversation.id;
-    let options: AxiosRequestConfig = {
-        method: "GET",
-        url: urlJoin(address.serviceUrl, `/v3/conversations/${conversationId}/members`),
-    };
-
-    let response = await sendRequestWithAccessToken(chatConnector, options);
-    if (response) {
-        return response;
-    } else {
-        throw new Error("Failed to get conversation members.");
-    }
-}
-
-// Starts a 1:1 chat with the given user.
-// Parameters:
-//      chatConnector: Chat connector instance.
-//      address: Chat connector address. "bot", "user" and "serviceUrl" properties are required.
-//      channelData: Channel data object. "tenant" property is required.
-// Returns: A copy of "address", with the "conversation" property referring to the 1:1 chat with the user.
-export async function startConversation(chatConnector: builder.ChatConnector, address: builder.IChatConnectorAddress, channelData: any): Promise<builder.IChatConnectorAddress> {
-    // Build request
-    let options: AxiosRequestConfig = {
-        method: "POST",
-        url: urlJoin(address.serviceUrl, "/v3/conversations"),
-        data: {
-            bot: address.bot,
-            members: [address.user],
-            channelData: channelData,
-        }
-    };
-
-    let response = await sendRequestWithAccessToken(chatConnector, options);
-    if (response && response.hasOwnProperty("id")) {
-        return createAddressFromResponse(address, response);
-    } else {
-        throw new Error("Failed to start conversation: no conversation ID returned.");
-    }
-}
-
-// Starts a new reply chain by posting a message to a channel.
-// Parameters:
-//      chatConnector: Chat connector instance.
-//      message: The message to post. The address in this message is ignored, and the message is posted to the specified channel.
-//      channelId: Id of the channel to post the message to.
-// Returns: A copy of "message.address", with the "conversation" property referring to the new reply chain.
-export async function startReplyChain(chatConnector: builder.ChatConnector, message: builder.Message, channelId: string): Promise<builder.IChatConnectorAddress> {
-    let activity = message.toMessage();
-
-    // Build request
-    let options: AxiosRequestConfig = {
-        method: "POST",
-        url: urlJoin((activity.address as any).serviceUrl, "/v3/conversations"),
-        data: {
-            isGroup: true,
-            activity: activity,
-            channelData: {
-                teamsChannelId: channelId,
-            },
-        }
-    };
-
-    let response = await sendRequestWithAccessToken(chatConnector, options);
-    if (response && response.hasOwnProperty("id")) {
-        let address = createAddressFromResponse(activity.address, response) as any;
-        if (address.user) {
-            delete address.user;
-        }
-        if (address.correlationId) {
-            delete address.correlationId;
-        }
-        return address;
-    } else {
-        throw new Error("Failed to start reply chain: no conversation ID returned.");
-    }
-}
-
-// Send an authenticated request
-async function sendRequestWithAccessToken(chatConnector: builder.ChatConnector, options: AxiosRequestConfig): Promise<any> {
-    // Add access token
-    await addAccessToken(chatConnector, options);
-
+// Gets the members of the given conversation
+export async function getConversationMembers(context: TurnContext, conversationId?: string): Promise<any[]> {
     try {
-        const response = await axios(options);
-        return response.data;
+        const actualConversationId = conversationId || context.activity.conversation?.id;
+        if (!actualConversationId) {
+            throw new Error("No conversation ID provided");
+        }
+        return await TeamsInfo.getMembers(context);
     } catch (error) {
-        if (axios.isAxiosError(error) && error.response) {
-            let txt = `Request to '${options.url}' failed: [${error.response.status}] ${error.response.statusText}`;
-            throw new Error(txt);
-        }
-        throw error;
+        throw new Error(`Failed to get conversation members: ${error.message}`);
     }
 }
 
-// Add access token to request options
-function addAccessToken(chatConnector: builder.ChatConnector, options: AxiosRequestConfig): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-        // ChatConnector type definition doesn't include getAccessToken
-        (chatConnector as any).getAccessToken((err: any, token: string) => {
-            if (err) {
-                reject(err);
-            } else {
-                options.headers = {
-                    ...options.headers,
-                    "Authorization": "Bearer " + token,
-                };
-                resolve();
-            }
-        });
-    });
+// Starts a 1:1 chat with the given user
+export async function startPersonalConversation(context: TurnContext, userId: string): Promise<ConversationReference> {
+    try {
+        const ref = await TeamsInfo.getMember(context, userId);
+        const conversationParameters = {
+            isGroup: false,
+            channelData: {
+                tenant: getTenantId(context.activity)
+            },
+            bot: context.activity.recipient,
+            members: [ref],
+            tenantId: getTenantId(context.activity)
+        };
+        
+        const connectorClient = context.turnState.get(context.adapter.ConnectorClientKey);
+        const conversationResource = await connectorClient.conversations.createConversation(conversationParameters);
+        
+        return {
+            channelId: context.activity.channelId,
+            serviceUrl: context.activity.serviceUrl,
+            conversation: {
+                id: conversationResource.id,
+                name: '',
+                isGroup: false,
+                conversationType: 'personal'
+            } as ConversationAccount,
+            bot: context.activity.recipient,
+            user: ref
+        };
+    } catch (error) {
+        throw new Error(`Failed to start personal conversation: ${error.message}`);
+    }
 }
 
-// Create a copy of address with the data from the response
-function createAddressFromResponse(address: builder.IChatConnectorAddress, response: any): builder.IChatConnectorAddress {
-    let result = {
-        ...address,
-        conversation: { id: response["id"] },
-        useAuth: true,
+// Get locale from client info in activity
+export function getLocale(activity: Partial<Activity>): string {
+    if (activity.entities) {
+        const clientInfo = activity.entities.find(e => e.type === "clientInfo");
+        return (clientInfo as any)?.locale;
+    }
+    return activity.locale || null;
+}
+
+// Get Teams context from activity
+export function getTeamsContext(activity: Partial<Activity>): any {
+    const channelData = activity.channelData as TeamsChannelData;
+    const meetingInfo = channelData?.meeting || {};
+    
+    return {
+        locale: getLocale(activity),
+        country: null, // No longer available in v4
+        platform: 'teams',
+        timezone: null, // No longer available in v4
+        tenant: getTenantId(activity),
+        teamsChannelId: getChannelId(activity),
+        teamsTeamId: getTeamId(activity),
+        userObjectId: (activity.from as any)?.aadObjectId,
+        messageId: activity.id,
+        conversationId: activity.conversation?.id,
+        conversationType: activity.conversation?.conversationType,
+        theme: (meetingInfo as any)?.theme || null
     };
-    if (result.id) {
-        delete result.id;
-    }
-    if (response["activityId"]) {
-        result.id = response["activityId"];
-    }
-    return result;
-}
-
-// Get locale from client info in event
-export function getLocale(evt: builder.IEvent): string {
-    let event = (evt as any);
-    if (event.entities && event.entities.length) {
-        let clientInfo = event.entities.find(e => e.type && e.type === "clientInfo");
-        return clientInfo.locale;
-    }
-    return null;
-}
-
-// Load a Session corresponding to the given event
-export function loadSessionAsync(bot: builder.UniversalBot, event: builder.IEvent): Promise<builder.Session> {
-    return new Promise((resolve, reject) => {
-        bot.loadSession(event.address, (err: any, session: builder.Session) => {
-            if (err) {
-                logger.error("Failed to load session", { error: err, address: event.address });
-                reject(err);
-            } else if (!session) {
-                logger.error("Loaded null session", { address: event.address });
-                reject(new Error("Failed to load session"));
-            } else {
-                let locale = getLocale(event);
-                if (locale) {
-                    (session as any)._locale = locale;
-                    session.localizer.load(locale, (err2) => {
-                        // Log errors but resolve session anyway
-                        if (err2) {
-                            logger.error(`Failed to load localizer for ${locale}`, err2);
-                        }
-                        resolve(session);
-                    });
-                } else {
-                    resolve (session);
-                }
-            }
-        });
-    });
-}
-
-// Helper function that mimics the getContext() call in the client SDK
-// @param BotBuilder.IEvent; if null, session.sourceEvent is used
-// @param BotBuilder.Session (used for full messages)
-//
-// Function uses either an event or a session object; if both are provided, the function returns an error string
-export function getContext(event: builder.IEvent, session?: builder.Session): any {
-    let entities: any = null;
-    if ((event !== undefined) && (session !== undefined)) {
-        return "Error: getContext() takes a builder.IEvent or builder.Session object as parameters, but not both.";
-    }
-    if (event === null) {
-        if (session === undefined) {
-            // Nothing was passed, return null
-            return null;
-        }
-        else {
-            // Use sourceEvent and entities array from the session object
-            event = session.message.sourceEvent;
-            entities = session.message.entities;
-        }
-    }
-    else {
-        // Use entities array from the event object
-        entities = (event as any).entities;
-    }
-    // Define context object and populate as much as possible using existing helper functions
-    let context: any = {
-        locale: null,
-        country: null,
-        platform: null,
-        timezone: null,
-        tenant: getTenantId(event),
-        teamsChannelId: getChannelId(event),
-        teamsTeamId: getTeamId(event),
-        userObjectId: null,
-        messageId: null,
-        conversationId: null,
-        conversationType: null,
-        theme: null,
-    };
-    // Populate locale, country, platform, timezone
-    if (entities !== undefined && entities.length) {
-        let clientInfo = entities.find(e => e.type && e.type === "clientInfo");
-        context.locale = clientInfo.locale;
-        context.country = clientInfo.country;
-        context.platform = clientInfo.platform;
-        context.timezone = clientInfo.timezone;
-    }
-    if (session !== undefined) {
-        // We have a builder.Session object
-        context.userObjectId = (session.message.address.user as any).aadObjectId;
-        context.messageId = (session.message.address as any).id;
-        context.conversationId = session.message.address.conversation.id;
-        context.conversationType = session.message.address.conversation.conversationType;
-    }
-    else {
-        // We have a builder.IEvent object
-        context.userObjectId = (event.address.user as any).aadObjectId;
-        context.messageId = (event.address as any).id;
-        context.conversationId = event.address.conversation.id;
-        context.conversationType = event.address.conversation.conversationType;
-    }
-
-    return context;
 }

@@ -67,6 +67,57 @@ html(lang='en')
           // Initialize toolbar
           window.initializeToolbar();
           console.log('Editor initialization complete');
+
+          // Add paste event handler for images
+          const prosemirrorElement = editorElement.querySelector('.ProseMirror');
+          if (prosemirrorElement) {
+            prosemirrorElement.addEventListener('paste', async (event) => {
+              console.log('Paste event detected');
+              const items = event.clipboardData?.items;
+              if (!items) return;
+
+              for (const item of items) {
+                console.log('Processing clipboard item:', item.type);
+                if (item.type.startsWith('image/')) {
+                  event.preventDefault();
+                  const file = item.getAsFile();
+                  if (!file) continue;
+
+                  console.log('Processing image file:', file.name, file.size);
+                  if (file.size > 5000000) {
+                    alert("Image is too large. Please use an image under 5MB.");
+                    return;
+                  }
+
+                  const formData = new FormData();
+                  formData.append('image', file);
+
+                  try {
+                    console.log('Uploading image...');
+                    const response = await fetch('/api/upload-image', {
+                      method: 'POST',
+                      body: formData
+                    });
+
+                    if (!response.ok) {
+                      throw new Error('Upload failed');
+                    }
+
+                    const data = await response.json();
+                    console.log('Image uploaded successfully:', data.url);
+                    window.editor.chain().focus().setImage({ src: data.url }).run();
+                  } catch (error) {
+                    console.error('Error uploading pasted image:', error);
+                    alert('Failed to upload image. Please try again.');
+                  }
+                }
+              }
+            });
+            console.log('Paste event handler initialized');
+          } else {
+            console.error('ProseMirror element not found');
+          }
+
         } catch (error) {
           console.error('Error creating editor:', error);
         }
@@ -242,6 +293,17 @@ html(lang='en')
         transform: translateY(-1px);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         background: #43a047;
+      }
+
+      .accept-button.accepted {
+        opacity: 0.7;
+        cursor: default;
+        pointer-events: none;
+      }
+      
+      .accept-button.accepted:hover {
+        transform: none;
+        box-shadow: none;
       }
       
       .accepted-answer .answer-meta {
@@ -455,25 +517,29 @@ html(lang='en')
           div.question-title= question.title
           div.question-meta
             div.question-meta-item
-              span Posted by #{question.userName}
+              span Posted by #{question.profile.firstName} #{question.profile.lastName}
             div.question-meta-item
-              span #{new Date(question.timestamp).toLocaleString()}
-          div.question-content!= question.rawHtml || question.text
+              span #{new Date(question.createdAt).toLocaleString()}
+          div.question-content!= question.body
           
           div.answers-section
             div.answers-title Answers
             div.answer-list
               each answer in question.answers || []
-                div(class=`answer-item ${answer.isAccepted ? 'accepted-answer' : ''}` data-answer-id=answer.id)
+                div(class=`answer-item ${answer.accepted ? 'accepted-answer' : ''}` data-answer-id=answer.id)
                   div.answer-meta
                     div.answer-author-info
-                      span.answer-author= answer.userName
-                      span.answer-date= new Date(answer.timestamp).toLocaleString()
-                    if answer.isAccepted
-                      .accepted-answer-label
-                        i.material-icons check_circle
-                        | Accepted Answer
-                  div.answer-content!= answer.text
+                      span.answer-author= answer.profile.firstName + ' ' + answer.profile.lastName
+                      span.answer-date= new Date(answer.createdAt).toLocaleString()
+                    div.answer-actions
+                      if answer.accepted
+                        .accepted-answer-label
+                          i.material-icons check_circle
+                          | Accepted Answer
+                      button.accept-button(onclick=`acceptAnswer('${question.id}', '${answer.id}')` style="display: none;")
+                        i.material-icons= answer.accepted ? 'check_circle' : 'check_circle_outline'
+                        = answer.accepted ? 'Accepted' : 'Accept Answer'
+                  div.answer-content!= answer.body
             
             div.answer-form
               div#editor-container
@@ -505,24 +571,54 @@ html(lang='en')
       // Get Teams context and update UI accordingly
       microsoftTeams.getContext((context) => {
         console.log('Teams context:', context);
-        if (context && context.userObjectId) {
-          // Update the UI based on question ownership
-          const questionUserId = '#{question.userId}';
-          const isOwner = questionUserId === context.userObjectId;
-          console.log('Ownership check:', { questionUserId, currentUserId: context.userObjectId, isOwner });
+        if (context) {
+          // Get user's email from Teams context
+          const userEmail = context.userPrincipalName || context.upn;
+          // Get question owner's email from profile
+          const questionOwnerEmail = '#{question.profile.email}';
           
-          // Update accept buttons visibility
-          document.querySelectorAll('.answer-item').forEach(item => {
+          console.log('Checking ownership:', {
+            userEmail,
+            questionOwnerEmail,
+            context
+          });
+          
+          const isOwner = userEmail && questionOwnerEmail && 
+                         userEmail.toLowerCase() === questionOwnerEmail.toLowerCase();
+          
+          console.log('Ownership check:', {
+            isOwner,
+            userEmail,
+            questionOwnerEmail
+          });
+          
+          // Update accept buttons visibility based on ownership
+          const answerItems = document.querySelectorAll('.answer-item');
+          console.log('Found answer items:', answerItems.length);
+          
+          answerItems.forEach((item) => {
+            const acceptButton = item.querySelector('.accept-button');
             const isAccepted = item.classList.contains('accepted-answer');
-            const answerId = item.getAttribute('data-answer-id');
-            const answerMeta = item.querySelector('.answer-meta');
+            const acceptedLabel = item.querySelector('.accepted-answer-label');
             
-            if (isOwner && !isAccepted) {
-              const acceptButton = document.createElement('button');
-              acceptButton.className = 'accept-button';
-              acceptButton.onclick = () => acceptAnswer('#{question.id}', answerId);
-              acceptButton.innerHTML = '<i class="material-icons">check_circle_outline</i>Accept Answer';
-              answerMeta.appendChild(acceptButton);
+            if (acceptButton) {
+              // Only show accept button for question owner
+              acceptButton.style.display = isOwner ? 'inline-flex' : 'none';
+              
+              // Update button state based on acceptance status
+              if (isAccepted) {
+                acceptButton.innerHTML = '<i class="material-icons">check_circle</i>Accepted';
+                acceptButton.classList.add('accepted');
+                if (acceptedLabel) {
+                  acceptedLabel.style.display = 'inline-flex';
+                }
+              } else {
+                acceptButton.innerHTML = '<i class="material-icons">check_circle_outline</i>Accept Answer';
+                acceptButton.classList.remove('accepted');
+                if (acceptedLabel) {
+                  acceptedLabel.style.display = 'none';
+                }
+              }
             }
           });
         }
@@ -626,54 +722,13 @@ html(lang='en')
             }
 
             const data = await response.json();
+            console.log('Answer submitted successfully:', data);
 
-            // Get updated question data with all answers
-            const questionResponse = await fetch(`/api/questions/${questionId}`);
-            const questionData = await questionResponse.json();
-
-            // Update the answers list in the UI immediately
-            const answerList = document.querySelector('.answer-list');
-            answerList.innerHTML = questionData.answers.map(answer => `
-              <div class="answer-item ${answer.isAccepted ? 'accepted-answer' : ''}">
-                <div class="answer-meta">
-                  <div class="answer-author-info">
-                    <span class="answer-author">${answer.userName}</span>
-                    <span class="answer-date">${new Date(answer.timestamp).toLocaleString()}</span>
-                  </div>
-                  ${answer.isAccepted ? 
-                    `<div class="accepted-answer-label">
-                      <i class="material-icons">check_circle</i>
-                      Accepted Answer
-                    </div>` :
-                    (questionData.userId === context.userObjectId && !questionData.answers.some(a => a.isAccepted) ? 
-                      `<button class="accept-button" onclick="acceptAnswer('${questionId}', '${answer.id}')">
-                        <i class="material-icons">check_circle_outline</i>
-                        Accept Answer
-                      </button>` : 
-                      '')}
-                </div>
-                <div class="answer-content">${answer.text}</div>
-              </div>
-            `).join('');
-
-            // Scroll to the new answer
-            const newAnswer = answerList.lastElementChild;
-            if (newAnswer) {
-              newAnswer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-
-            // Reinitialize image modal functionality for new content
-            setupImageModal();
-
-            // Clear the editor
-            window.editor.commands.clearContent();
-
-            // Submit answer and close the task module
+            // Close the task module with the question ID and type
             microsoftTeams.tasks.submitTask({
-              type: "answer_submitted",
+              type: 'answer_submitted',
               data: {
-                question: questionData,
-                answers: questionData.answers
+                questionId: questionId
               }
             });
           });
@@ -688,6 +743,8 @@ html(lang='en')
         try {
           microsoftTeams.getContext(async (context) => {
             console.log('Teams context for accept:', context);
+            
+            // Call the accept answer endpoint
             const response = await fetch(`/api/questions/${questionId}/answers/${answerId}/accept`, {
               method: 'PUT',
               headers: {
@@ -704,30 +761,32 @@ html(lang='en')
             }
 
             // Get updated question data
-            const questionResponse = await fetch(`/api/questions/${questionId}`);
-            if (!questionResponse.ok) {
-              throw new Error('Failed to get updated question data');
-            }
-
-            const questionData = await questionResponse.json();
+            const questionData = await response.json();
             console.log('Updated question data:', questionData);
 
             // Update the answers list in the UI
             const answerList = document.querySelector('.answer-list');
             answerList.innerHTML = questionData.answers.map(answer => `
-              <div class="answer-item ${answer.isAccepted ? 'accepted-answer' : ''}" data-answer-id="${answer.id}">
+              <div class="answer-item ${answer.accepted ? 'accepted-answer' : ''}" data-answer-id="${answer.id}">
                 <div class="answer-meta">
                   <div class="answer-author-info">
-                    <span class="answer-author">${answer.userName}</span>
-                    <span class="answer-date">${new Date(answer.timestamp).toLocaleString()}</span>
+                    <span class="answer-author">${answer.profile.firstName} ${answer.profile.lastName}</span>
+                    <span class="answer-date">${new Date(answer.createdAt).toLocaleString()}</span>
                   </div>
-                  ${answer.isAccepted ? 
-                    `<div class="accepted-answer-label">
-                      <i class="material-icons">check_circle</i>
-                      Accepted Answer
-                    </div>` : ''}
+                  <div class="answer-actions">
+                    ${answer.accepted ? `
+                      <div class="accepted-answer-label">
+                        <i class="material-icons">check_circle</i>
+                        Accepted Answer
+                      </div>
+                    ` : ''}
+                    <button class="accept-button ${answer.accepted ? 'accepted' : ''}" onclick="acceptAnswer('${questionId}', '${answer.id}')">
+                      <i class="material-icons">${answer.accepted ? 'check_circle' : 'check_circle_outline'}</i>
+                      ${answer.accepted ? 'Accepted' : 'Accept Answer'}
+                    </button>
+                  </div>
                 </div>
-                <div class="answer-content">${answer.text}</div>
+                <div class="answer-content">${answer.body}</div>
               </div>
             `).join('');
 

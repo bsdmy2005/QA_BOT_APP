@@ -91,15 +91,13 @@ module.exports.setup = function(app: any): void {
     });
 
     // API endpoint to handle question submission
-    app.post("/api/questions", function(req: Request, res: Response): void {
+    app.post("/api/questions", async function(req: Request, res: Response): Promise<void> {
         try {
-            const question = req.body;
-            logger.info("Received question submission", { question });
+            const { title, text, userName } = req.body;
+            logger.info("Received question submission", { title, userName });
 
             // Generate URL for the question
-            question.url = `${process.env.BASE_URI}/qna/${question.id}`;
-            
-            const savedQuestion = questionsService.addQuestion(question);
+            const savedQuestion = await questionsService.addQuestion(title, text, userName);
             res.status(200).json(savedQuestion);
         } catch (error) {
             logger.error("Error saving question", { error });
@@ -134,35 +132,17 @@ module.exports.setup = function(app: any): void {
     });
 
     // API endpoint to add an answer to a question
-    app.post("/api/questions/:id/answers", function(req: Request, res: Response): void {
+    app.post("/api/questions/:id/answers", async function(req: Request, res: Response): Promise<void> {
         try {
-            // Get Teams context from the request headers with proper fallback
-            const userId = (
-                req.headers['x-ms-client-principal-id'] || 
-                req.headers['userobjectid'] || 
-                'anonymous'
-            ) as string;
-            
-            const userName = (
-                req.headers['x-ms-client-principal-name'] || 
-                req.headers['userprincipalname'] || 
-                'Anonymous User'
-            ) as string;
+            const userName = req.headers['x-ms-client-principal-name'] as string || 'Anonymous User';
+            const text = req.body.text;
 
-            logger.info("Adding answer with user context", { 
-                userId, 
-                userName,
-                headers: req.headers 
+            logger.info("Adding answer", { 
+                questionId: req.params.id,
+                userName
             });
 
-            // Create answer with user info from headers
-            const answer = {
-                ...req.body,
-                userId: userId,
-                userName: userName
-            };
-
-            const savedAnswer = questionsService.addAnswer(req.params.id, answer);
+            const savedAnswer = await questionsService.addAnswer(req.params.id, text, userName);
             if (!savedAnswer) {
                 res.status(404).json({ error: "Question not found" });
                 return;
@@ -175,24 +155,18 @@ module.exports.setup = function(app: any): void {
     });
 
     // API endpoint to accept an answer
-    app.put("/api/questions/:questionId/answers/:answerId/accept", function(req: Request, res: Response): void {
+    app.put("/api/questions/:questionId/answers/:answerId/accept", async function(req: Request, res: Response): Promise<void> {
         try {
-            // Get Teams context from the request headers with proper fallback
-            const userId = (
-                req.headers['x-ms-client-principal-id'] || 
-                req.headers['userobjectid'] || 
-                'anonymous'
-            ) as string;
+            const userName = req.headers['x-ms-client-principal-name'] as string || 'Anonymous User';
 
-            logger.info("Accepting answer with user context", { 
-                userId,
+            logger.info("Accepting answer", { 
                 questionId: req.params.questionId,
                 answerId: req.params.answerId,
-                headers: req.headers
+                userName
             });
             
-            // Get the question to verify ownership
-            const question = questionsService.getQuestion(req.params.questionId);
+            // Get the question
+            const question = await questionsService.getQuestion(req.params.questionId);
             if (!question) {
                 logger.warn("Question not found for accept answer", {
                     questionId: req.params.questionId
@@ -201,17 +175,7 @@ module.exports.setup = function(app: any): void {
                 return;
             }
 
-            // Verify the user is the question owner
-            if (question.userId !== userId) {
-                logger.warn("Unauthorized accept answer attempt", {
-                    questionUserId: question.userId,
-                    requestUserId: userId
-                });
-                res.status(403).json({ error: "Only the question owner can accept answers" });
-                return;
-            }
-
-            const success = questionsService.acceptAnswer(
+            const success = await questionsService.acceptAnswer(
                 req.params.questionId,
                 req.params.answerId
             );
@@ -226,7 +190,7 @@ module.exports.setup = function(app: any): void {
             }
 
             // Get the updated question to return
-            const updatedQuestion = questionsService.getQuestion(req.params.questionId);
+            const updatedQuestion = await questionsService.getQuestion(req.params.questionId);
             logger.info("Successfully accepted answer", {
                 questionId: req.params.questionId,
                 answerId: req.params.answerId,
@@ -299,55 +263,28 @@ module.exports.setup = function(app: any): void {
     });
 
     // Route to display a specific question in a task module
-    app.get("/question/:id", function(req: Request, res: Response): void {
+    app.get("/question/:id", async function(req: Request, res: Response): Promise<void> {
         logger.info("Rendering question details view");
         try {
-            // Get Teams context from the request headers with proper fallback
-            const userId = (
-                req.headers['x-ms-client-principal-id'] || 
-                req.headers['userobjectid'] || 
-                'anonymous'
-            ) as string;
-            
-            const userName = (
-                req.headers['x-ms-client-principal-name'] || 
-                req.headers['userprincipalname'] || 
-                'Anonymous User'
-            ) as string;
+            const userName = req.headers['x-ms-client-principal-name'] as string || 'Anonymous User';
 
             logger.info("User context for question view", { 
-                userId, 
                 userName,
-                headers: req.headers,
-                allHeaders: JSON.stringify(req.headers)
+                headers: req.headers
             });
 
             // Get the question
-            const question = questionsService.getQuestion(req.params.id);
+            const question = await questionsService.getQuestion(req.params.id);
             if (!question) {
                 res.status(404).send("Question not found");
                 return;
             }
 
-            // Check if current user is the question owner
-            const isQuestionOwner = question.userId === userId;
-            logger.info("Question ownership check", { 
-                isQuestionOwner, 
-                questionUserId: question.userId, 
-                currentUserId: userId,
-                question: JSON.stringify(question),
-                userIdType: typeof userId,
-                questionUserIdType: typeof question.userId,
-                exactMatch: `${userId} === ${question.userId}`
-            });
-
             // Render the template with the question and user info
             res.render("question", { 
                 question,
                 baseUri: process.env.BASE_URI,
-                userId: userId,
-                userName: userName,
-                isQuestionOwner: isQuestionOwner
+                userName: userName
             });
         } catch (error) {
             logger.error("Error rendering question details view", { error });

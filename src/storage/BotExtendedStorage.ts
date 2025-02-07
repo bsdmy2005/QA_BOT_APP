@@ -21,11 +21,10 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import * as builder from "botbuilder";
+import { Storage, StoreItems } from 'botbuilder';
 
-/** Replacable storage system. */
-export interface IBotExtendedStorage extends builder.IBotStorage {
-
+/** Extended storage system with AAD support. */
+export interface IBotExtendedStorage extends Storage {
     /** Reads in user data from storage based on AAD object id. */
     getUserDataByAadObjectIdAsync(aadObjectId: string): Promise<any>;
 
@@ -34,5 +33,4 @@ export interface IBotExtendedStorage extends builder.IBotStorage {
 
     /** Sets the AAD object id associated with the user data bag. */
     setAAdObjectId(userData: any, aadObjectId: string): void;
-
 }

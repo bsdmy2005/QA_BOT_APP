@@ -21,49 +21,74 @@
 // OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 // WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import * as builder from "botbuilder";
-import * as msteams from "botbuilder-teams";
+import {
+    TeamsActivityHandler,
+    TurnContext,
+    MessagingExtensionQuery,
+    MessagingExtensionResponse,
+    CardFactory,
+    MessagingExtensionResult
+} from 'botbuilder';
 import { TeamsBot } from "./TeamsBot";
 import * as faker from "faker";
+import { Logger } from 'winston';
 
-export class MessagingExtension extends TeamsBot {
+export class MessagingExtension extends TeamsActivityHandler {
+    private logger: Logger;
+
     constructor(
-        bot: TeamsBot,
-    )
-    {
-        super(bot._connector, bot._botSettings);
-        // Cast as an msTeams.TeamsChatConnector and attach the onQuery event
-        (this._connector as msteams.TeamsChatConnector).onQuery("getRandomText", this.generateRandomResponse);
+        private bot: TeamsBot,
+        logger: Logger
+    ) {
+        super();
+        this.logger = logger;
     }
 
-    private generateRandomResponse(event: builder.IEvent, query: msteams.ComposeExtensionQuery, callback: any): void {
+    public async handleTeamsMessagingExtensionQuery(
+        context: TurnContext,
+        query: MessagingExtensionQuery
+    ): Promise<MessagingExtensionResponse> {
+        this.logger.info('Processing messaging extension query', { 
+            commandId: query.commandId,
+            parameters: query.parameters 
+        });
+
+        switch (query.commandId) {
+            case 'getRandomText':
+                return this.generateRandomResponse(query);
+            default:
+                this.logger.warn('Unknown command in messaging extension', { commandId: query.commandId });
+                throw new Error('Not implemented');
+        }
+    }
+
+    private generateRandomResponse(query: MessagingExtensionQuery): MessagingExtensionResponse {
         // If the user supplied a title via the cardTitle parameter then use it or use a fake title
-        let title = query.parameters && query.parameters[0].name === "cardTitle"
-            ? query.parameters[0].value
-            : faker.lorem.sentence();
+        const titleParam = query.parameters?.find(p => p.name === "cardTitle");
+        const title = titleParam ? titleParam.value : faker.lorem.sentence();
 
-        let randomImageUrl = "https://loremflickr.com/200/200"; // Faker's random images uses lorempixel.com, which has been down a lot
-
-        // Build the data to send
-        let attachments = [];
+        const randomImageUrl = "https://loremflickr.com/200/200"; // Faker's random images uses lorempixel.com, which has been down a lot
 
         // Generate 5 results to send with fake text and fake images
-        for (let i = 0; i < 5; i++) {
-            attachments.push(
-                new builder.ThumbnailCard()
-                    .title(title)
-                    .text(faker.lorem.paragraph())
-                    .images([new builder.CardImage().url(`${randomImageUrl}?random=${i}`)])
-                    .toAttachment());
-        }
+        const attachments = Array.from({ length: 5 }, (_, i) => {
+            return CardFactory.thumbnailCard(
+                title,
+                faker.lorem.paragraph(),
+                [{ url: `${randomImageUrl}?random=${i}` }]
+            );
+        });
 
-        // Build the response to be sent
-        let response = msteams.ComposeExtensionResponse
-            .result("list")
-            .attachments(attachments)
-            .toResponse();
+        const response: MessagingExtensionResult = {
+            type: 'result',
+            attachmentLayout: 'list',
+            attachments: attachments
+        };
 
-        // Send the response to teams
-        callback(null, response, 200);
+        this.logger.info('Generated random response', { 
+            title,
+            attachmentCount: attachments.length 
+        });
+
+        return { composeExtension: response };
     }
 }

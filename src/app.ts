@@ -27,12 +27,20 @@ dotenv.config(); // Load .env file from project root
 import express from "express";
 import * as bodyParser from "body-parser";
 import * as path from "path";
-import * as winston from "winston";
-import * as builder from "botbuilder";
-import * as msteams from "botbuilder-teams";
+import { Logger, createLogger, format, transports } from "winston";
+import {
+    BotFrameworkAdapter,
+    BotFrameworkAdapterSettings,
+    MemoryStorage,
+    ConversationState,
+    UserState,
+    Activity
+} from 'botbuilder';
 import * as storage from "./storage";
 import { TeamsBot } from "./TeamsBot";
 import uploadRouter from './routes/upload-image';
+import { QABot } from './bot/QABot';
+import { QuestionDialog } from './dialogs/QuestionDialog';
 
 // Environment variables
 const PORT = parseInt(process.env.PORT || "3978", 10);
@@ -44,7 +52,7 @@ const MICROSOFT_APP_ID = process.env.MICROSOFT_APP_ID;
 const MICROSOFT_APP_PASSWORD = process.env.MICROSOFT_APP_PASSWORD;
 
 // Initialize logger
-initLogger();
+const logger = initLogger();
 
 // Create Express app
 const app = express();
@@ -65,16 +73,46 @@ app.use((req, res, next) => {
 
 // Add request logging
 app.use((req, res, next) => {
-    winston.info(`Incoming request: ${req.method} ${req.url}`, {
-        headers: req.headers,
-        query: req.query,
-        body: req.body
-    });
+    // Extract Teams-specific information if available
+    const teamsInfo = {
+        tenantId: req.headers['x-ms-tenant-id'],
+        conversationId: req.headers['x-ms-conversation-id'],
+        clientInfo: req.headers['user-agent']?.includes('Microsoft-SkypeBotApi') ? 'Teams' : 'Other'
+    };
+
+    // For /api/messages endpoint, only log essential bot information
+    if (req.path === '/api/messages' && req.method === 'POST') {
+        const body = req.body || {};
+        const logData = {
+            type: 'Bot Message',
+            messageType: body.type,
+            activity: {
+                type: body.type,
+                text: body.text?.substring(0, 50), // Truncate long messages
+                from: body.from?.name,
+                locale: body.locale,
+                conversationType: body.conversation?.conversationType
+            },
+            teams: teamsInfo
+        };
+        logger.info('Teams Bot Activity', logData);
+    } else {
+        // For other endpoints, log standard request info
+        const logData = {
+            type: 'HTTP Request',
+            method: req.method,
+            path: req.url,
+            query: Object.keys(req.query).length ? req.query : undefined,
+            contentType: req.headers['content-type'],
+            userAgent: req.headers['user-agent']
+        };
+        logger.info('API Request', logData);
+    }
     next();
 });
 
 // Configure bot storage
-let botStorage: builder.IBotStorage;
+let botStorage: storage.IBotExtendedStorage;
 if (BOT_STORAGE === "mongodb") {
     if (!MONGODB_CONNECTION_STRING) {
         throw new Error("MONGODB_CONNECTION_STRING environment variable is required when using mongodb storage");
@@ -83,30 +121,48 @@ if (BOT_STORAGE === "mongodb") {
         MONGODB_BOT_STATE_COLLECTION,
         MONGODB_CONNECTION_STRING
     );
-    winston.info("Using MongoDB for bot storage");
+    logger.info("Storage configuration", { type: "MongoDB", collection: MONGODB_BOT_STATE_COLLECTION });
 } else {
-    botStorage = new builder.MemoryBotStorage();
-    winston.info("Using in-memory bot storage");
+    botStorage = new storage.NullBotStorage();
+    logger.info("Storage configuration", { type: "In-Memory" });
 }
 
-// Create bot
-const connector = new msteams.TeamsChatConnector({
+// Create adapter settings
+const adapterSettings: Partial<BotFrameworkAdapterSettings> = {
     appId: MICROSOFT_APP_ID,
-    appPassword: MICROSOFT_APP_PASSWORD,
-});
-
-const botSettings = {
-    storage: botStorage,
+    appPassword: MICROSOFT_APP_PASSWORD
 };
 
-const bot = new TeamsBot(connector as unknown as builder.ChatConnector, botSettings);
+// Create adapter
+const adapter = new BotFrameworkAdapter(adapterSettings);
+
+// Add error handling
+adapter.onTurnError = async (context, error) => {
+    logger.error("Bot Framework error", {
+        error: {
+            name: error.name,
+            message: error.message,
+            stack: error.stack
+        }
+    });
+
+    await context.sendActivity("Sorry, something went wrong!");
+};
+
+// Create storage and state
+const memoryStorage = new MemoryStorage();
+const conversationState = new ConversationState(memoryStorage);
+const userState = new UserState(memoryStorage);
+
+// Create dialog
+const dialog = new QuestionDialog(logger);
+
+// Create bot
+const bot = new QABot(conversationState, userState, dialog, logger);
 
 // Set up bot endpoint
-app.post("/api/messages", connector.listen());
-
-// Log bot errors
-bot.on("error", (error: Error) => {
-    winston.error("Bot error:", error);
+app.post("/api/messages", async (req, res) => {
+    await adapter.process(req, res, (context) => bot.run(context));
 });
 
 // Configure routes
@@ -123,28 +179,75 @@ app.get("/ping", (req: express.Request, res: express.Response) => {
 
 // Error handling middleware
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    winston.error('Error handling request:', err);
+    logger.error("Request error", {
+        path: req.url,
+        method: req.method,
+        error: {
+            name: err.name,
+            message: err.message,
+            stack: err.stack
+        }
+    });
     res.status(500).send('Internal Server Error');
 });
 
 // Start server
 app.listen(PORT, "0.0.0.0", () => {
-    winston.info(`Server Configuration:`, {
-        port: PORT,
-        baseUri: BASE_URI,
-        environment: process.env.NODE_ENV || 'development'
+    logger.info("Server started", {
+        config: {
+            port: PORT,
+            baseUri: BASE_URI,
+            environment: process.env.NODE_ENV || 'development'
+        }
     });
-
-    winston.info(`Server is running on port ${PORT}`);
-    winston.info(`Bot messaging endpoint: ${BASE_URI}/api/messages`);
 });
 
 // Logger initialization
-function initLogger(): void {
-    winston.configure({
+function initLogger(): Logger {
+    return createLogger({
+        level: process.env.LOG_LEVEL || 'info',
+        format: format.combine(
+            format.timestamp(),
+            format.colorize(),
+            format.printf(({ timestamp, level, message, ...meta }) => {
+                let logMessage = `${timestamp} ${level} ${message}`;
+                
+                // Format meta data
+                if (Object.keys(meta).length) {
+                    const metaObj = meta as any;
+                    
+                    // Special handling for Teams Bot Activity
+                    if (metaObj.type === 'Bot Message' && metaObj.activity) {
+                        const activity = metaObj.activity as Activity;
+                        logMessage += ` [${activity.type || 'unknown'}] from: ${activity.from?.name || 'unknown'} text: "${activity.text || ''}"`;
+                    }
+                    // Special handling for API Request
+                    else if (metaObj.type === 'HTTP Request') {
+                        logMessage += ` [${metaObj.method}] ${metaObj.path}`;
+                        if (metaObj.query) {
+                            logMessage += ` query: ${JSON.stringify(metaObj.query)}`;
+                        }
+                    }
+                    // For other types of logs, just stringify important fields
+                    else {
+                        const importantFields = ['type', 'message', 'error', 'config'];
+                        const relevantData = {};
+                        importantFields.forEach(field => {
+                            if (metaObj[field]) {
+                                relevantData[field] = metaObj[field];
+                            }
+                        });
+                        if (Object.keys(relevantData).length) {
+                            logMessage += ` ${JSON.stringify(relevantData)}`;
+                        }
+                    }
+                }
+
+                return logMessage.trim();
+            })
+        ),
         transports: [
-            new winston.transports.Console({
-                level: process.env.LOG_LEVEL || 'info',
+            new transports.Console({
                 handleExceptions: true
             })
         ]
